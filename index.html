@@ -39,6 +39,7 @@
         </div>
         <div class="top-actions">
           <button class="btn ghost" id="refreshBtn">↻ 새로고침</button>
+          <button class="btn ghost" id="manageStructureBtn">⚙ 제품 / 이름 관리</button>
           <button class="btn ghost" id="bulkBtn">⇧ Excel 일괄 등록</button>
           <button class="btn primary" id="addBtn">＋ Tool 추가</button>
         </div>
@@ -63,6 +64,11 @@
           <div class="search-wrap"><span>⌕</span><input id="searchInput" placeholder="Tool명, 설명, 비고 검색" /></div>
           <select id="statusFilter"><option value="">모든 상태</option><option>보유</option><option>미보유</option><option>확인중</option></select>
           <select id="categoryFilter"><option value="">모든 분류</option></select>
+          <div class="language-filter" id="languageFilter" aria-label="자료 언어">
+            <button class="lang-filter active" type="button" data-file-language="전체">전체</button>
+            <button class="lang-filter" type="button" data-file-language="국문">국문</button>
+            <button class="lang-filter" type="button" data-file-language="영문">영문</button>
+          </div>
           <span class="result-count" id="resultCount"></span>
         </div>
       </section>
@@ -175,20 +181,65 @@
         </label>
 
         <label>버전<input id="materialVersion" placeholder="예: v2.1" /></label>
-        <label>언어<select id="materialLanguage"><option value="">구분 없음</option><option>국문</option><option>영문</option><option>일문</option><option>중문</option><option>기타</option></select></label>
+        <label>언어<select id="materialLanguage" required><option value="국문">국문</option><option value="영문">영문</option><option value="일문">일문</option><option value="중문">중문</option><option value="기타">기타</option></select></label>
         <label class="span2">비고<input id="materialNote" placeholder="예: 2026 ERS 배포본 / 유럽용" /></label>
         <label class="current-check span2"><input id="materialCurrent" type="checkbox" checked /><span><b>현재 사용본으로 등록</b><small>같은 Tool·언어의 기존 자료는 이전 버전으로 표시됩니다.</small></span></label>
       </div>
 
       <div class="material-help">
         <b>Drive 저장 구조</b>
-        <span>MEKICS Sales Material → 제품군 → 모델/시리즈 → 분류 → Tool → 세부자료 순으로 자동 정리됩니다.</span>
+        <span>MEKICS Sales Material → 제품군 → 제품 → 분류 → Tool → 세부자료 → 국문/영문 순으로 자동 정리됩니다.</span>
       </div>
 
       <div class="dialog-actions">
         <span></span>
         <button class="btn ghost" type="button" id="cancelMaterialBtn">취소</button>
         <button class="btn primary" type="button" id="saveMaterialBtn">Drive에 등록</button>
+      </div>
+    </div>
+  </dialog>
+
+
+  <dialog id="structureDialog" class="structure-dialog">
+    <div class="detail-wrap">
+      <div class="dialog-head">
+        <div><p class="eyebrow">PRODUCT STRUCTURE · NAME</p><h2>제품 / 이름 관리</h2></div>
+        <button class="icon-btn" type="button" id="closeStructureDialog">×</button>
+      </div>
+
+      <div class="structure-intro">
+        <div><b>코드 수정 없이 페이지에서 이름을 관리합니다.</b><span>제품군 · 제품 · Tool 분류명을 여기서 변경할 수 있고, 영업 Tool 이름은 각 카드의 ⋯ 수정 메뉴에서 변경합니다.</span></div>
+      </div>
+
+      <section class="structure-section">
+        <div class="structure-section-head"><div><b>제품군 · 제품</b><span>왼쪽 PRODUCTS 메뉴에 표시되는 구조입니다.</span></div></div>
+        <div id="structureTree" class="structure-tree"></div>
+      </section>
+
+      <section class="structure-add panel-lite">
+        <div class="structure-add-title"><b>새 제품 추가</b><span>추가할 제품군을 선택하고 제품명을 입력하세요.</span></div>
+        <div class="structure-add-row">
+          <select id="newStructureFamily"></select>
+          <input id="newStructureProductName" placeholder="예: HFT752 / MV300" />
+          <button class="btn primary compact" type="button" id="addStructureProductBtn">제품 추가</button>
+        </div>
+      </section>
+
+      <section class="structure-add panel-lite">
+        <div class="structure-add-title"><b>새 제품군 추가</b><span>새 제품군은 기본적으로 독립 제품들을 묶는 방식으로 생성됩니다.</span></div>
+        <div class="structure-add-row family-add-row">
+          <input id="newStructureFamilyName" placeholder="예: Patient Monitoring" />
+          <button class="btn ghost compact" type="button" id="addStructureFamilyBtn">제품군 추가</button>
+        </div>
+      </section>
+
+      <section class="structure-section">
+        <div class="structure-section-head"><div><b>Tool 분류명</b><span>제품 소개 · 사용/설치 자료 같은 분류명을 전체 데이터에서 한 번에 변경합니다.</span></div></div>
+        <div id="categoryNameList" class="category-name-list"></div>
+      </section>
+
+      <div class="structure-tip">
+        <b>이름 변경 범위</b><span>제품군/제품은 화면 표시명만 변경되어 기존 Excel 연동 키와 데이터가 안전하게 유지됩니다. Tool명은 기존 Tool 수정에서 직접 변경할 수 있습니다.</span>
       </div>
     </div>
   </dialog>
