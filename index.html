@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#f6f8fb" />
+  <title>MEKICS Sales Tool Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">M</div>
+        <div><strong>MEKICS</strong><span>Sales Tool Hub</span></div>
+      </div>
+      <nav>
+        <button class="nav-item active" data-view="dashboard"><span>◫</span> 보유 현황</button>
+        <button class="nav-item" id="focusMissing"><span>◌</span> 미보유 Tool</button>
+      </nav>
+      <div class="side-foot">
+        <span class="sync-dot" id="syncDot"></span>
+        <div><b id="syncText">초기 데이터 모드</b><small id="syncSub">Google Sheets 연결 전</small></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">STRATEGY & PLANNING · SALES ENABLEMENT</p>
+          <h1>영업 Tool 보유 현황</h1>
+          <p class="subtitle">제품별 영업 자료의 준비 상태를 한눈에 확인하고 관리합니다.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost" id="refreshBtn">↻ 새로고침</button>
+          <button class="btn primary" id="addBtn">＋ Tool 추가</button>
+        </div>
+      </header>
+
+      <section class="stats" id="stats"></section>
+
+      <section class="panel product-panel">
+        <div class="panel-head">
+          <div><h2>제품별 현황</h2><p>제품을 선택하면 해당 Tool만 표시됩니다.</p></div>
+          <div class="product-tabs" id="productTabs"></div>
+        </div>
+        <div class="product-progress" id="productProgress"></div>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="toolbar">
+          <div class="search-wrap"><span>⌕</span><input id="searchInput" placeholder="Tool명, 설명, 비고 검색" /></div>
+          <select id="statusFilter"><option value="">모든 상태</option><option>보유</option><option>미보유</option><option>확인중</option></select>
+          <select id="categoryFilter"><option value="">모든 구분</option></select>
+          <span class="result-count" id="resultCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th class="no">No.</th><th>구분</th><th>영업 Tool</th><th>설명</th><th>보유 여부</th><th>최종 업데이트</th><th>비고</th><th></th></tr></thead>
+            <tbody id="toolBody"></tbody>
+          </table>
+          <div class="empty" id="emptyState" hidden><div>◎</div><b>조건에 맞는 항목이 없습니다.</b><span>검색어나 필터를 변경해보세요.</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="itemDialog">
+    <form method="dialog" id="itemForm">
+      <div class="dialog-head"><div><p class="eyebrow" id="dialogEyebrow">NEW SALES TOOL</p><h2 id="dialogTitle">Tool 추가</h2></div><button value="cancel" class="icon-btn" type="button" id="closeDialog">×</button></div>
+      <input type="hidden" id="editId" />
+      <div class="form-grid">
+        <label>제품<select id="productSelect" required></select></label>
+        <label id="newProductWrap" hidden>새 제품명<input id="newProductInput" placeholder="예: MV2000" /></label>
+        <label>구분<input id="categoryInput" list="categoryList" required placeholder="예: 제품 소개" /><datalist id="categoryList"></datalist></label>
+        <label>번호<input id="noInput" placeholder="예: 14 또는 1-1." /></label>
+        <label class="span2">영업 Tool 항목<input id="itemInput" required placeholder="예: 제품 브로슈어" /></label>
+        <label class="span2">설명<input id="descriptionInput" placeholder="자료의 용도나 설명" /></label>
+        <label>보유 여부<select id="statusInput" required><option>보유</option><option>미보유</option><option>확인중</option></select></label>
+        <label>최종 업데이트일<input id="dateInput" type="date" /></label>
+        <label class="span2">비고<textarea id="noteInput" rows="3" placeholder="추가 확인사항이나 업데이트 메모"></textarea></label>
+      </div>
+      <div class="dialog-actions"><button class="btn danger" type="button" id="deleteBtn" hidden>삭제</button><span></span><button class="btn ghost" type="button" id="cancelBtn">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
