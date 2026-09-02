@@ -154,8 +154,13 @@ function topTools(items=state.items){return items.filter(x=>!isChild(x)).sort((a
 function categories(){return [...new Set(topTools().map(x=>x.category).filter(Boolean))]}
 function childrenOf(parent){const base=String(parent.no||"").replace(/\.$/,"");return state.items.filter(x=>x.product===parent.product&&isChild(x)&&baseNo(x)===base).sort((a,b)=>compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
 function parentOf(item){if(!isChild(item)) return item;return state.items.find(x=>x.product===item.product&&!isChild(x)&&String(x.no||"").replace(/\.$/,"")===baseNo(item))||null}
-function normalizeLanguage(value){const v=String(value||"").trim();return v||"미지정"}
-function languageBucket(value){const v=normalizeLanguage(value);return v==="국문"?"국문":v==="영문"?"영문":"기타"}
+function normalizeLanguage(value){const v=String(value||"").trim();return v||"공용"}
+function languageBucket(value){
+  const v=normalizeLanguage(value);
+  if(["국내","국문","KO","KR"].includes(v))return "국내";
+  if(["해외","영문","일문","중문","EN","JP","CN"].includes(v))return "해외";
+  return "공용";
+}
 function filterFilesByLanguage(files,language){if(!language||language==="전체")return files;return files.filter(f=>languageBucket(f.language)===language)}
 function filesForToolId(toolId,language="전체"){const files=state.files.filter(f=>String(f.toolId)===String(toolId)).sort((a,b)=>String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
 function childProductMatch(name,dataKey){const t=String(name||"").toUpperCase().replace(/\s+/g,"");const k=String(dataKey||"").toUpperCase().replace(/\s+/g,"");return !!k&&(t===k||t.includes(k))}
@@ -168,7 +173,7 @@ function childrenForView(parent){
 function fileScopeIds(parent,viewOnly=false){const kids=viewOnly?childrenForView(parent):childrenOf(parent);return [String(parent.id),...kids.map(c=>String(c.id))]}
 function filesForParent(parent,viewOnly=false,language="전체"){const ids=new Set(fileScopeIds(parent,viewOnly));const files=state.files.filter(f=>ids.has(String(f.toolId))).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
 function fileCountForParent(parent){return filesForParent(parent,true,state.fileLanguage).length}
-function fileLanguageCounts(parent){const files=filesForParent(parent,true,"전체");return {total:files.length,ko:files.filter(f=>languageBucket(f.language)==="국문").length,en:files.filter(f=>languageBucket(f.language)==="영문").length,other:files.filter(f=>languageBucket(f.language)==="기타").length}}
+function fileLanguageCounts(parent){const files=filesForParent(parent,true,"전체");return {total:files.length,domestic:files.filter(f=>languageBucket(f.language)==="국내").length,overseas:files.filter(f=>languageBucket(f.language)==="해외").length,shared:files.filter(f=>languageBucket(f.language)==="공용").length}}
 function bytesLabel(n){const v=Number(n)||0;if(!v)return"";if(v<1024)return`${v} B`;if(v<1024*1024)return`${(v/1024).toFixed(1)} KB`;return`${(v/1024/1024).toFixed(v>10*1024*1024?0:1)} MB`}
 function targetName(toolId){return state.items.find(x=>String(x.id)===String(toolId))?.item||"Tool"}
 function scopeDefaultProduct(){
@@ -208,7 +213,7 @@ function renderHeader(){
   const label=scopeLabel();
   const name=state.product==="전체"?"영업 Tool 보유 현황":`${label} Sales Tool`;
   $("#pageTitle").textContent=name;
-  $("#pageSubtitle").textContent=state.product==="전체"?"제품군과 제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.":`${label}의 카다로그, 브로슈어, 매뉴얼과 Drive 자료를 확인합니다.`;
+  $("#pageSubtitle").textContent=state.product==="전체"?"제품군과 제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.":"※ 등록된 자료 파일은 페이지에서 직접 수정할 수 없습니다. 수정본은 새 파일로 등록해주세요.";
 }
 function renderStats(){
   const t=totals();
@@ -245,7 +250,7 @@ function toolCard(x){
     <div class="tool-card-top"><span class="tool-symbol">${categoryIcon(x.category||"")}</span><div class="tool-status"><span class="badge ${statusClass(x.status)}">${esc(x.status)}</span></div></div>
     <h3>${esc(x.item)}</h3><p class="tool-desc">${esc(x.description||"설명 없음")}</p>
     ${children.length?`<div class="variant-preview">${preview}</div>`:""}
-    <div class="language-counts"><span class="language-pill ko ${state.fileLanguage==="국문"?"active":""}">국문 ${lang.ko}</span><span class="language-pill en ${state.fileLanguage==="영문"?"active":""}">영문 ${lang.en}</span>${lang.other?`<span class="language-pill other">기타 ${lang.other}</span>`:""}</div>
+    <div class="language-counts"><span class="language-pill ko ${state.fileLanguage==="국내"?"active":""}">국내 ${lang.domestic}</span><span class="language-pill en ${state.fileLanguage==="해외"?"active":""}">해외 ${lang.overseas}</span><span class="language-pill other ${state.fileLanguage==="공용"?"active":""}">공용 ${lang.shared}</span></div>
     <div class="tool-card-footer"><span class="tool-meta">${fileCount?`📎 ${fileCount}개 자료 · `:""}${children.length?`${children.length}개 세부자료 · `:""}${esc(update)}</span><div class="card-actions"><button class="text-btn" data-detail="${esc(x.id)}">자료 보기</button><button class="row-btn" data-edit="${esc(x.id)}" title="수정">⋯</button></div></div>
   </article>`;
 }
@@ -258,15 +263,15 @@ function rebuildFilters(){
 
 function openDetail(id){
   const wasOpen=$("#detailDialog").open;
-  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;const children=childrenForView(parent);if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";const allFiles=filesForParent(parent,true,"전체");const files=filterFilesByLanguage(allFiles,state.detailLanguage);const langCounts={전체:allFiles.length,국문:allFiles.filter(f=>languageBucket(f.language)==="국문").length,영문:allFiles.filter(f=>languageBucket(f.language)==="영문").length,기타:allFiles.filter(f=>languageBucket(f.language)==="기타").length};
+  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;const children=childrenForView(parent);if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";const allFiles=filesForParent(parent,true,"전체");const files=filterFilesByLanguage(allFiles,state.detailLanguage);const langCounts={전체:allFiles.length,국내:allFiles.filter(f=>languageBucket(f.language)==="국내").length,해외:allFiles.filter(f=>languageBucket(f.language)==="해외").length,공용:allFiles.filter(f=>languageBucket(f.language)==="공용").length};
   $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"}`;$("#detailTitle").textContent=parent.item;
   $("#detailBody").innerHTML=`
     <div class="detail-summary"><div><span class="badge ${statusClass(parent.status)}">${esc(parent.status)}</span><p>${esc(parent.description||"설명 없음")}</p><div class="detail-info"><span>No. ${esc(parent.no||"-")}</span><span>최종 업데이트 ${esc(fmtDate(parent.updatedAt))}</span></div>${parent.note?`<div class="detail-note">${esc(parent.note)}</div>`:""}</div></div>
     ${children.length?`<div class="variant-list"><div class="variant-list-title">세부 Tool · ${children.length}종</div>${children.map(c=>`<div class="variant-row"><div class="variant-name"><strong>${esc(c.item)}</strong><span>${esc(c.note||c.description||"세부 자료")}</span></div><span class="badge ${statusClass(c.status)}">${esc(c.status)}</span><span class="date-col tool-meta">📎 ${filesForToolId(c.id).length} · ${esc(fmtDate(c.updatedAt))}</span><button class="row-btn" data-detail-edit="${esc(c.id)}">⋯</button></div>`).join("")}</div>`:""}
     <div class="material-section">
-      <div class="material-section-head"><div><b>등록 자료</b><span>국문 · 영문 자료를 분리해서 관리합니다. 전체 ${allFiles.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ 자료 등록</button></div>
-      <div class="material-language-tabs">${["전체","국문","영문","기타"].map(lang=>`<button type="button" class="material-language-tab ${state.detailLanguage===lang?"active":""}" data-detail-language="${lang}"><span>${lang}</span><b>${langCounts[lang]}</b></button>`).join("")}</div>
-      <div class="material-list">${files.length?files.map(fileRowHtml).join(""):`<div class="material-empty"><span>⌁</span><b>${esc(state.detailLanguage)} 자료가 없습니다.</b><small>자료 등록 시 언어를 선택하면 국문/영문으로 자동 분리됩니다.</small></div>`}</div>
+      <div class="material-section-head"><div><b>등록 자료</b><span>국내 · 해외 · 공용 자료로 구분합니다. 전체 ${allFiles.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ 자료 등록</button></div>
+      <div class="material-language-tabs">${["전체","국내","해외","공용"].map(lang=>`<button type="button" class="material-language-tab ${state.detailLanguage===lang?"active":""}" data-detail-language="${lang}"><span>${lang}</span><b>${langCounts[lang]}</b></button>`).join("")}</div>
+      <div class="material-list">${files.length?files.map(fileRowHtml).join(""):`<div class="material-empty"><span>⌁</span><b>${esc(state.detailLanguage)} 자료가 없습니다.</b><small>자료 등록 시 활용 구분을 선택하면 국내/해외/공용으로 자동 분리됩니다.</small></div>`}</div>
     </div>
     <div class="detail-edit"><button class="btn ghost" id="editFromDetail">이 Tool 수정</button></div>`;
   $("#editFromDetail").onclick=()=>{$("#detailDialog").close();openEdit(parent.id)};
@@ -278,7 +283,7 @@ function openDetail(id){
 }
 function fileRowHtml(f){
   const current=f.isCurrent?'<span class="current-badge">현재본</span>':'';
-  const meta=[f.version,normalizeLanguage(f.language),bytesLabel(f.size),fmtDate(f.uploadedAt)].filter(v=>v&&v!=="-").map(esc).join(" · ");
+  const meta=[f.version,languageBucket(f.language),bytesLabel(f.size),fmtDate(f.uploadedAt)].filter(v=>v&&v!=="-").map(esc).join(" · ");
   const label=targetName(f.toolId);
   const href=f.downloadUrl||f.viewUrl||"#";
   return `<div class="material-row"><div class="file-icon">${fileExtensionIcon(f.fileName)}</div><div class="file-main"><div class="file-title"><strong>${esc(f.fileName)}</strong>${current}</div><span>${esc(label)}${meta?` · ${meta}`:""}</span>${f.note?`<small>${esc(f.note)}</small>`:""}</div><div class="file-actions"><a class="btn ghost compact file-open" href="${esc(href)}" target="_blank" rel="noopener">다운로드</a><button class="row-btn" data-file-delete="${esc(f.id)}" title="자료 삭제">×</button></div></div>`;
@@ -294,7 +299,7 @@ function openMaterialDialog(parentId){
   if($("#detailDialog").open)$("#detailDialog").close();
   const parent=state.items.find(x=>String(x.id)===String(parentId));if(!parent)return;
   materialState.parentId=String(parent.id);setMaterialMode("upload");
-  $("#materialFile").value="";$("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value=state.fileLanguage==="영문"?"영문":"국문";$("#materialNote").value="";$("#materialCurrent").checked=true;
+  $("#materialFile").value="";$("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value=["국내","해외","공용"].includes(state.fileLanguage)?state.fileLanguage:"국내";$("#materialNote").value="";$("#materialCurrent").checked=true;
   const targets=[parent,...childrenForView(parent)];$("#materialTarget").innerHTML=targets.map((t,i)=>`<option value="${esc(t.id)}">${i===0?"공통 Tool · ":"세부 Tool · "}${esc(t.item)}</option>`).join("");
   $("#materialDialog").showModal();
 }
@@ -302,7 +307,7 @@ function readFileAsDataUrl(file){return new Promise((resolve,reject)=>{const r=n
 async function saveMaterial(){
   if(!state.connected)return toast("Google Sheets 연결 후 자료를 등록할 수 있습니다.");
   const toolId=$("#materialTarget").value;const version=$("#materialVersion").value.trim();const language=$("#materialLanguage").value;const note=$("#materialNote").value.trim();const isCurrent=$("#materialCurrent").checked;
-  if(!toolId)return toast("연결할 Tool을 선택해주세요.");if(!language)return toast("국문 또는 영문 등 자료 언어를 선택해주세요.");
+  if(!toolId)return toast("연결할 Tool을 선택해주세요.");if(!language)return toast("국내 / 해외 / 공용 중 활용 구분을 선택해주세요.");
   const btn=$("#saveMaterialBtn");const original=btn.textContent;const beforeCount=state.files.length;
   try{
     btn.disabled=true;btn.textContent="등록 중...";
@@ -465,7 +470,7 @@ async function addStructureProduct(){
   const duplicate=childrenConfig(familyId).some(p=>p.name.toLowerCase()===name.toLowerCase()||p.dataKey.toLowerCase()===name.toLowerCase());if(duplicate)return toast("같은 제품이 이미 등록되어 있습니다.");
   const order=childrenConfig(familyId).reduce((m,x)=>Math.max(m,Number(x.order)||0),0)+1;
   const entry={id:crypto.randomUUID(),type:"product",parentId:familyId,name,dataKey:name,mode:"",order,active:true};
-  try{await apiPost("saveNavConfig",{entry});await loadData();$("#newStructureProductName").value="";renderStructureManager();toast(`${name} 제품을 추가했습니다.`)}catch(err){console.error(err);toast("제품 추가 중 오류가 발생했습니다.")}
+  try{await apiPost("addProductWithTemplate",{entry});await loadData();$("#newStructureProductName").value="";renderStructureManager();toast(`${name} 제품과 기본 Tool 구성을 추가했습니다.`)}catch(err){console.error(err);toast("제품 추가 중 오류가 발생했습니다.")}
 }
 async function addStructureFamily(){
   const name=$("#newStructureFamilyName").value.trim();if(!name)return toast("제품군 이름을 입력해주세요.");if(!state.connected)return toast("Google Sheets 연결 후 제품군을 추가할 수 있습니다.");

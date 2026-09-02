@@ -64,10 +64,11 @@
           <div class="search-wrap"><span>⌕</span><input id="searchInput" placeholder="Tool명, 설명, 비고 검색" /></div>
           <select id="statusFilter"><option value="">모든 상태</option><option>보유</option><option>미보유</option><option>확인중</option></select>
           <select id="categoryFilter"><option value="">모든 분류</option></select>
-          <div class="language-filter" id="languageFilter" aria-label="자료 언어">
+          <div class="language-filter" id="languageFilter" aria-label="자료 활용 구분">
             <button class="lang-filter active" type="button" data-file-language="전체">전체</button>
-            <button class="lang-filter" type="button" data-file-language="국문">국문</button>
-            <button class="lang-filter" type="button" data-file-language="영문">영문</button>
+            <button class="lang-filter" type="button" data-file-language="국내">국내</button>
+            <button class="lang-filter" type="button" data-file-language="해외">해외</button>
+            <button class="lang-filter" type="button" data-file-language="공용">공용</button>
           </div>
           <span class="result-count" id="resultCount"></span>
         </div>
@@ -181,14 +182,14 @@
         </label>
 
         <label>버전<input id="materialVersion" placeholder="예: v2.1" /></label>
-        <label>언어<select id="materialLanguage" required><option value="국문">국문</option><option value="영문">영문</option><option value="일문">일문</option><option value="중문">중문</option><option value="기타">기타</option></select></label>
+        <label>활용 구분<select id="materialLanguage" required><option value="국내">국내</option><option value="해외">해외</option><option value="공용">공용 (국내·해외)</option></select></label>
         <label class="span2">비고<input id="materialNote" placeholder="예: 2026 ERS 배포본 / 유럽용" /></label>
-        <label class="current-check span2"><input id="materialCurrent" type="checkbox" checked /><span><b>현재 사용본으로 등록</b><small>같은 Tool·언어의 기존 자료는 이전 버전으로 표시됩니다.</small></span></label>
+        <label class="current-check span2"><input id="materialCurrent" type="checkbox" checked /><span><b>현재 사용본으로 등록</b><small>같은 Tool·활용 구분의 기존 자료는 이전 버전으로 표시됩니다.</small></span></label>
       </div>
 
       <div class="material-help">
         <b>Drive 저장 구조</b>
-        <span>MEKICS Sales Material → 제품군 → 제품 → 분류 → Tool → 세부자료 → 국문/영문 순으로 자동 정리됩니다.</span>
+        <span>MEKICS Sales Material → 제품군 → 제품 → 분류 → Tool → 세부자료 → 국내/해외/공용 순으로 자동 정리됩니다.</span>
       </div>
 
       <div class="dialog-actions">
@@ -217,7 +218,7 @@
       </section>
 
       <section class="structure-add panel-lite">
-        <div class="structure-add-title"><b>새 제품 추가</b><span>추가할 제품군을 선택하고 제품명을 입력하세요.</span></div>
+        <div class="structure-add-title"><b>새 제품 추가</b><span>추가 시 MV50의 기본 Tool 구성(카다로그·브로슈어·PPT·매뉴얼 등)이 자동 생성됩니다.</span></div>
         <div class="structure-add-row">
           <select id="newStructureFamily"></select>
           <input id="newStructureProductName" placeholder="예: HFT752 / MV300" />
@@ -226,7 +227,7 @@
       </section>
 
       <section class="structure-add panel-lite">
-        <div class="structure-add-title"><b>새 제품군 추가</b><span>새 제품군은 기본적으로 독립 제품들을 묶는 방식으로 생성됩니다.</span></div>
+        <div class="structure-add-title"><b>새 제품군 추가</b><span>제품군을 만든 뒤 제품을 추가하면 MV50 기본 Tool 구성이 자동으로 들어갑니다.</span></div>
         <div class="structure-add-row family-add-row">
           <input id="newStructureFamilyName" placeholder="예: Patient Monitoring" />
           <button class="btn ghost compact" type="button" id="addStructureFamilyBtn">제품군 추가</button>
