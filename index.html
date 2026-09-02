@@ -148,6 +148,51 @@
     </div>
   </dialog>
 
+
+  <dialog id="materialDialog" class="material-dialog">
+    <div class="detail-wrap">
+      <div class="dialog-head">
+        <div><p class="eyebrow">GOOGLE DRIVE · MATERIAL</p><h2>자료 등록</h2></div>
+        <button class="icon-btn" type="button" id="closeMaterialDialog">×</button>
+      </div>
+
+      <div class="material-mode-tabs">
+        <button class="material-mode active" type="button" data-material-mode="upload">파일 직접 업로드</button>
+        <button class="material-mode" type="button" data-material-mode="link">Drive 링크 등록</button>
+      </div>
+
+      <div class="material-form">
+        <label class="span2">연결할 Tool<select id="materialTarget" required></select></label>
+
+        <label class="span2 material-upload-field" id="materialUploadField">파일
+          <input id="materialFile" type="file" />
+          <small>PDF, PPTX, XLSX, DOCX 등 · 직접 업로드는 파일당 8MB 이하 권장</small>
+        </label>
+
+        <label class="span2 material-link-field" id="materialLinkField" hidden>Google Drive 링크
+          <input id="materialDriveUrl" type="url" placeholder="https://drive.google.com/file/d/... 또는 docs.google.com/..." />
+          <small>용량이 큰 영상·PPT는 Drive에 먼저 올린 뒤 링크로 등록하면 안정적입니다.</small>
+        </label>
+
+        <label>버전<input id="materialVersion" placeholder="예: v2.1" /></label>
+        <label>언어<select id="materialLanguage"><option value="">구분 없음</option><option>국문</option><option>영문</option><option>일문</option><option>중문</option><option>기타</option></select></label>
+        <label class="span2">비고<input id="materialNote" placeholder="예: 2026 ERS 배포본 / 유럽용" /></label>
+        <label class="current-check span2"><input id="materialCurrent" type="checkbox" checked /><span><b>현재 사용본으로 등록</b><small>같은 Tool·언어의 기존 자료는 이전 버전으로 표시됩니다.</small></span></label>
+      </div>
+
+      <div class="material-help">
+        <b>Drive 저장 구조</b>
+        <span>MEKICS Sales Material → 제품 → 분류 → Tool → 세부자료 순으로 자동 정리됩니다.</span>
+      </div>
+
+      <div class="dialog-actions">
+        <span></span>
+        <button class="btn ghost" type="button" id="cancelMaterialBtn">취소</button>
+        <button class="btn primary" type="button" id="saveMaterialBtn">Drive에 등록</button>
+      </div>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
