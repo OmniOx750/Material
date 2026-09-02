@@ -39,6 +39,7 @@
         </div>
         <div class="top-actions">
           <button class="btn ghost" id="refreshBtn">↻ 새로고침</button>
+          <button class="btn ghost" id="bulkBtn">⇧ Excel 일괄 등록</button>
           <button class="btn primary" id="addBtn">＋ Tool 추가</button>
         </div>
       </header>
@@ -87,7 +88,13 @@
       <input type="hidden" id="editId" />
       <div class="form-grid">
         <label>제품<select id="productSelect" required></select></label>
-        <label id="newProductWrap" hidden>새 제품명<input id="newProductInput" placeholder="예: MV2000" /></label>
+        <div id="newProductWrap" class="new-product-wrap span2" hidden>
+          <label>새 제품명<input id="newProductInput" placeholder="예: MV2000" /></label>
+          <div class="bulk-callout">
+            <div><b>새 제품은 Excel 일괄 등록을 권장합니다.</b><span>기존 체크리스트 양식을 그대로 작성해 한 번에 등록할 수 있습니다.</span></div>
+            <button class="btn ghost compact" type="button" id="bulkFromNewBtn">Excel로 등록</button>
+          </div>
+        </div>
         <label>자료 분류<input id="categoryInput" list="categoryList" required placeholder="예: 제품 소개" /><datalist id="categoryList"></datalist></label>
         <label>번호<input id="noInput" placeholder="예: 14 또는 1-1." /></label>
         <label class="span2">영업 Tool 항목<input id="itemInput" required placeholder="예: 제품 브로슈어" /></label>
@@ -100,7 +107,49 @@
     </form>
   </dialog>
 
+
+  <dialog id="bulkDialog" class="bulk-dialog">
+    <div class="detail-wrap">
+      <div class="dialog-head">
+        <div><p class="eyebrow">BULK IMPORT · EXCEL</p><h2>Excel 일괄 등록 / 업데이트</h2></div>
+        <button class="icon-btn" type="button" id="closeBulkDialog">×</button>
+      </div>
+
+      <div class="bulk-guide">
+        <div class="bulk-guide-icon">X</div>
+        <div>
+          <b>기존 ‘영업 Tool 보유 현황 체크리스트’ 양식을 그대로 사용합니다.</b>
+          <p>시트명은 <strong>제품명 체크리스트</strong> 형식으로 작성하세요. 예: <strong>MV2000 체크리스트</strong>. 기존 제품 시트를 올리면 일괄 업데이트되고, 새 제품 시트를 올리면 제품 메뉴가 자동 생성됩니다.</p>
+        </div>
+      </div>
+
+      <div class="bulk-actions-top">
+        <label class="file-drop" for="excelFile">
+          <input id="excelFile" type="file" accept=".xlsx,.xls" hidden />
+          <span class="file-drop-icon">⇧</span>
+          <span><b id="excelFileTitle">Excel 파일 선택</b><small id="excelFileSub">.xlsx / .xls · 기존 체크리스트 양식</small></span>
+        </label>
+        <a class="btn ghost template-btn" href="sales-tool-import-template.xlsx" download>양식 다운로드</a>
+      </div>
+
+      <div id="bulkPreviewEmpty" class="bulk-preview-empty">파일을 선택하면 등록할 제품과 항목을 미리 확인할 수 있습니다.</div>
+      <div id="bulkPreview" class="bulk-preview" hidden></div>
+
+      <div class="bulk-note">
+        <b>업데이트 기준</b>
+        <span>같은 제품의 같은 No.가 있으면 해당 항목을 업데이트하고, 없으면 신규 항목으로 추가합니다. 선택하지 않은 시트는 변경하지 않습니다.</span>
+      </div>
+
+      <div class="dialog-actions">
+        <span></span>
+        <button class="btn ghost" type="button" id="cancelBulkBtn">취소</button>
+        <button class="btn primary" type="button" id="runBulkBtn" disabled>선택한 시트 반영</button>
+      </div>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast"></div>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>

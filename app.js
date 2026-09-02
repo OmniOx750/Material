@@ -50,6 +50,7 @@ const normalizeAppsScriptUrl=url=>url.replace(/\/a\/macros\/[^/]+\/s\//,"/macros
 const API_CANDIDATES=[normalizeAppsScriptUrl(RAW_API_URL),RAW_API_URL].filter((v,i,a)=>v&&a.indexOf(v)===i);
 let ACTIVE_API_URL=API_CANDIDATES[0]||"";
 const state={items:[],product:"전체",search:"",status:"",category:"",connected:false};
+const bulkState={fileName:"",sheets:[]};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -93,7 +94,7 @@ async function apiPost(action,payload={}){
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body:JSON.stringify({action,...payload})
   });
-  await sleep(850);
+  await sleep(action==="bulkUpsert"?1400:850);
 }
 
 async function loadData(showMessage=false){
@@ -122,9 +123,10 @@ function setSync(mode,title,sub){
   $("#syncText").textContent=title; $("#syncSub").textContent=sub;
 }
 function products(){return [...new Set(state.items.map(x=>x.product).filter(Boolean))]}
-function topTools(items=state.items){return items.filter(x=>!isChild(x))}
+function compareNo(a,b){return String(a.no||"").localeCompare(String(b.no||""),"ko",{numeric:true,sensitivity:"base"})}
+function topTools(items=state.items){return items.filter(x=>!isChild(x)).sort((a,b)=>String(a.product||"").localeCompare(String(b.product||""),"ko")||compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
 function categories(){return [...new Set(topTools().map(x=>x.category).filter(Boolean))]}
-function childrenOf(parent){const base=String(parent.no||"").replace(/\.$/,"");return state.items.filter(x=>x.product===parent.product&&isChild(x)&&baseNo(x)===base).sort((a,b)=>(Number(a.order)||9999)-(Number(b.order)||9999))}
+function childrenOf(parent){const base=String(parent.no||"").replace(/\.$/,"");return state.items.filter(x=>x.product===parent.product&&isChild(x)&&baseNo(x)===base).sort((a,b)=>compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
 function parentOf(item){if(!isChild(item)) return item;return state.items.find(x=>x.product===item.product&&!isChild(x)&&String(x.no||"").replace(/\.$/,"")===baseNo(item))||null}
 function scopedTopTools(){return topTools().filter(x=>state.product==="전체"||x.product===state.product)}
 function filteredTools(){
@@ -209,12 +211,91 @@ function fillProductSelect(selected){
   const ps=products();$("#productSelect").innerHTML=ps.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("")+'<option value="__new__">＋ 새 제품 추가</option>';
   $("#productSelect").value=selected&&ps.includes(selected)?selected:(state.product!=="전체"&&ps.includes(state.product)?state.product:(ps[0]||"__new__"));toggleNewProduct();
 }
-function toggleNewProduct(){$("#newProductWrap").hidden=$("#productSelect").value!=="__new__";$("#newProductInput").required=!$("#newProductWrap").hidden}
+function toggleNewProduct(){
+  const isNew=$("#productSelect").value==="__new__";
+  $("#newProductWrap").hidden=!isNew;
+  $("#newProductInput").required=isNew;
+}
 function openAdd(){resetForm();$("#dialogEyebrow").textContent="NEW SALES TOOL";$("#dialogTitle").textContent="Tool 추가";$("#deleteBtn").hidden=true;fillProductSelect();$("#statusInput").value="미보유";$("#itemDialog").showModal()}
 function openEdit(id){
   const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const inheritedCategory=x.category||(parentOf(x)?.category||"");resetForm();$("#dialogEyebrow").textContent="EDIT SALES TOOL";$("#dialogTitle").textContent=isChild(x)?"세부 자료 수정":"Tool 수정";$("#deleteBtn").hidden=false;$("#editId").value=x.id;fillProductSelect(x.product);$("#noInput").value=x.no||"";$("#categoryInput").value=inheritedCategory;$("#itemInput").value=x.item||"";$("#descriptionInput").value=x.description||"";$("#statusInput").value=x.status||"미보유";$("#dateInput").value=x.updatedAt&&x.updatedAt!=="-"?fmtDate(x.updatedAt):"";$("#noteInput").value=x.note||"";$("#itemDialog").showModal();
 }
 function resetForm(){$("#itemForm").reset();$("#editId").value="";$("#newProductWrap").hidden=true}
+
+function normalizeProductFromSheet(name){
+  return String(name||"").replace(/\s*체크리스트\s*$/i,"").trim();
+}
+function normalizeExcelDate(v){
+  if(v===null||v===undefined||v===""||v==="-") return "";
+  if(v instanceof Date && !Number.isNaN(v.getTime())){
+    const y=v.getFullYear(),m=String(v.getMonth()+1).padStart(2,"0"),d=String(v.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  if(typeof v==="number" && window.XLSX?.SSF?.parse_date_code){
+    const p=XLSX.SSF.parse_date_code(v);if(p)return `${p.y}-${String(p.m).padStart(2,"0")}-${String(p.d).padStart(2,"0")}`;
+  }
+  const text=String(v).trim().replace(/\./g,"-").replace(/\//g,"-");
+  const m=text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return "";
+}
+function excelCell(v){return String(v??"").trim()}
+function parseChecklistSheet(sheetName,ws){
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+  const headerIndex=rows.findIndex(r=>{
+    const cells=r.map(excelCell);return cells.includes("No")&&cells.includes("구분")&&cells.includes("영업 Tool 항목")&&cells.includes("보유 여부");
+  });
+  if(headerIndex<0)return {sheetName,product:normalizeProductFromSheet(sheetName),items:[],error:"체크리스트 헤더를 찾지 못했습니다."};
+  const headers=rows[headerIndex].map(excelCell);const col=name=>headers.indexOf(name);
+  const ix={no:col("No"),category:col("구분"),item:col("영업 Tool 항목"),description:col("설명"),status:col("보유 여부"),updatedAt:col("최종 업데이트일"),note:col("비고")};
+  const product=normalizeProductFromSheet(sheetName);const items=[];const warnings=[];
+  rows.slice(headerIndex+1).forEach((r,offset)=>{
+    const item=excelCell(r[ix.item]);const no=excelCell(r[ix.no]);if(!item||!no)return;
+    const child=no.includes("-");const category=excelCell(r[ix.category]);
+    if(!child&&!category){warnings.push(`${headerIndex+2+offset}행: 구분이 없어 제외됨`);return;}
+    let status=excelCell(r[ix.status]);if(!["보유","미보유","확인중"].includes(status))status="미보유";
+    items.push({product,no,category:child?"":category,item,description:excelCell(r[ix.description]),status,updatedAt:normalizeExcelDate(r[ix.updatedAt]),note:excelCell(r[ix.note]),order:offset+1});
+  });
+  return {sheetName,product,items,warnings,error:items.length?"":"등록 가능한 Tool 항목이 없습니다."};
+}
+function resetBulkDialog(){
+  bulkState.fileName="";bulkState.sheets=[];$("#excelFile").value="";$("#excelFileTitle").textContent="Excel 파일 선택";$("#excelFileSub").textContent=".xlsx / .xls · 기존 체크리스트 양식";$("#bulkPreview").hidden=true;$("#bulkPreview").innerHTML="";$("#bulkPreviewEmpty").hidden=false;$("#runBulkBtn").disabled=true;
+}
+function openBulkImport(){
+  if(typeof XLSX==="undefined")return toast("Excel 모듈을 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
+  if($("#itemDialog").open)$("#itemDialog").close();resetBulkDialog();$("#bulkDialog").showModal();
+}
+function renderBulkPreview(){
+  const known=new Set(products());
+  $("#bulkPreviewEmpty").hidden=bulkState.sheets.length>0;$("#bulkPreview").hidden=bulkState.sheets.length===0;
+  $("#bulkPreview").innerHTML=bulkState.sheets.map((s,i)=>{
+    const existing=known.has(s.product),valid=!s.error&&s.items.length>0;const checked=valid&&!existing;
+    return `<label class="import-sheet ${valid?'':'invalid'}"><input type="checkbox" data-bulk-sheet="${i}" ${checked?'checked':''} ${valid?'':'disabled'}><span class="import-sheet-main"><b>${esc(s.product||s.sheetName)}</b><small>${esc(s.sheetName)}</small></span><span class="import-sheet-meta"><strong>${s.items.length}개</strong><em class="${existing?'update':'new'}">${existing?'기존 제품 · 업데이트':'새 제품 · 자동 추가'}</em>${s.error?`<small>${esc(s.error)}</small>`:''}${s.warnings?.length?`<small>${s.warnings.length}개 행 확인 필요</small>`:''}</span></label>`;
+  }).join("");
+  document.querySelectorAll("[data-bulk-sheet]").forEach(x=>x.onchange=updateBulkButton);updateBulkButton();
+}
+function updateBulkButton(){
+  const selected=[...document.querySelectorAll("[data-bulk-sheet]:checked")];$("#runBulkBtn").disabled=selected.length===0;$("#runBulkBtn").textContent=selected.length?`선택한 ${selected.length}개 시트 반영`:"선택한 시트 반영";
+}
+async function handleExcelFile(e){
+  const file=e.target.files?.[0];if(!file)return;$("#excelFileTitle").textContent=file.name;$("#excelFileSub").textContent="파일 분석 중...";
+  try{
+    const buf=await file.arrayBuffer();const book=XLSX.read(buf,{type:"array",cellDates:true});
+    bulkState.fileName=file.name;bulkState.sheets=book.SheetNames.map(name=>parseChecklistSheet(name,book.Sheets[name])).filter(x=>x.items.length||x.error);
+    $("#excelFileSub").textContent=`${bulkState.sheets.length}개 체크리스트 시트 확인`;renderBulkPreview();
+  }catch(err){console.error(err);bulkState.sheets=[];$("#excelFileSub").textContent="파일을 읽지 못했습니다.";renderBulkPreview();toast("Excel 파일을 확인해주세요.")}
+}
+async function runBulkImport(){
+  const selected=[...document.querySelectorAll("[data-bulk-sheet]:checked")].map(x=>bulkState.sheets[Number(x.dataset.bulkSheet)]).filter(Boolean);if(!selected.length)return;
+  const items=selected.flatMap(s=>s.items);if(!items.length)return toast("반영할 Tool이 없습니다.");
+  if(!state.connected)return toast("Google Sheets 연결 후 일괄 등록할 수 있습니다.");
+  if(!confirm(`${selected.map(s=>s.product).join(", ")} · 총 ${items.length}개 항목을 Google Sheets에 반영할까요?\n같은 제품 + 같은 No.는 업데이트됩니다.`))return;
+  try{
+    $("#runBulkBtn").disabled=true;$("#runBulkBtn").textContent="반영 중...";await apiPost("bulkUpsert",{items});await loadData();$("#bulkDialog").close();
+    toast(`${selected.length}개 제품 · ${items.length}개 항목을 반영했습니다.`);
+    if(selected.length===1)selectProduct(selected[0].product);
+  }catch(err){console.error(err);toast("Excel 일괄 등록 중 오류가 발생했습니다.");updateBulkButton()}
+}
 function formData(){
   const id=$("#editId").value;const product=$("#productSelect").value==="__new__"?$("#newProductInput").value.trim():$("#productSelect").value;
   return {id:id||crypto.randomUUID(),product,no:$("#noInput").value.trim(),category:$("#categoryInput").value.trim(),item:$("#itemInput").value.trim(),description:$("#descriptionInput").value.trim(),status:$("#statusInput").value,updatedAt:$("#dateInput").value,note:$("#noteInput").value.trim(),order:id?(state.items.find(x=>String(x.id)===String(id))?.order||state.items.length+1):state.items.length+1};
@@ -233,6 +314,7 @@ async function deleteItem(){
 }
 let toastTimer;function toast(msg){clearTimeout(toastTimer);$("#toast").textContent=msg;$("#toast").classList.add("show");toastTimer=setTimeout(()=>$("#toast").classList.remove("show"),2800)}
 
-$("#addBtn").onclick=openAdd;$("#refreshBtn").onclick=()=>loadData(true);$("#closeDialog").onclick=()=>$("#itemDialog").close();$("#cancelBtn").onclick=()=>$("#itemDialog").close();$("#closeDetail").onclick=()=>$("#detailDialog").close();$("#productSelect").onchange=toggleNewProduct;$("#itemForm").onsubmit=saveItem;$("#deleteBtn").onclick=deleteItem;
+$("#addBtn").onclick=openAdd;$("#bulkBtn").onclick=openBulkImport;$("#bulkFromNewBtn").onclick=openBulkImport;$("#refreshBtn").onclick=()=>loadData(true);$("#closeDialog").onclick=()=>$("#itemDialog").close();$("#cancelBtn").onclick=()=>$("#itemDialog").close();$("#closeDetail").onclick=()=>$("#detailDialog").close();$("#productSelect").onchange=toggleNewProduct;$("#itemForm").onsubmit=saveItem;$("#deleteBtn").onclick=deleteItem;
+$("#closeBulkDialog").onclick=()=>$("#bulkDialog").close();$("#cancelBulkBtn").onclick=()=>$("#bulkDialog").close();$("#excelFile").onchange=handleExcelFile;$("#runBulkBtn").onclick=runBulkImport;
 $("#searchInput").oninput=e=>{state.search=e.target.value;renderToolSections()};$("#statusFilter").onchange=e=>{state.status=e.target.value;renderToolSections()};$("#categoryFilter").onchange=e=>{state.category=e.target.value;renderToolSections()};
 loadData();
