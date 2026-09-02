@@ -164,14 +164,40 @@ function languageBucket(value){
 function filterFilesByLanguage(files,language){if(!language||language==="전체")return files;return files.filter(f=>languageBucket(f.language)===language)}
 function filesForToolId(toolId,language="전체"){const files=state.files.filter(f=>String(f.toolId)===String(toolId)).sort((a,b)=>String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
 function childProductMatch(name,dataKey){const t=String(name||"").toUpperCase().replace(/\s+/g,"");const k=String(dataKey||"").toUpperCase().replace(/\s+/g,"");return !!k&&(t===k||t.includes(k))}
+function normalizedModelName(name){return String(name||"").toUpperCase().replace(/\s+/g,"").replace(/[^A-Z0-9]/g,"")}
+function hft750MarketForChild(child){
+  const t=normalizedModelName(child?.item);
+  if(/^HFT750[ABS]$/.test(t))return "국내";
+  if(t==="HFT750")return "해외";
+  return "";
+}
 function currentScopeEntry(){return state.product==="전체"||String(state.product).startsWith("extra:")?null:navById(state.product)}
-function childrenForView(parent){
+function childrenForView(parent,market){
   const all=childrenOf(parent),entry=currentScopeEntry();
-  if(entry?.type==="product"){const fam=familyOf(entry);if(fam?.mode==="child"&&parent.product===fam.dataKey)return all.filter(c=>childProductMatch(c.item,entry.dataKey))}
+  if(entry?.type==="product"){
+    const fam=familyOf(entry);
+    if(fam?.mode==="child"&&parent.product===fam.dataKey){
+      let matched=all.filter(c=>childProductMatch(c.item,entry.dataKey));
+      if(normalizedModelName(entry.dataKey)==="HFT750"){
+        const bucket=market||state.fileLanguage||"전체";
+        if(bucket==="국내")matched=matched.filter(c=>hft750MarketForChild(c)==="국내");
+        else if(bucket==="해외")matched=matched.filter(c=>hft750MarketForChild(c)==="해외");
+        else if(bucket==="공용")matched=matched.filter(c=>hft750MarketForChild(c)==="해외");
+      }
+      return matched;
+    }
+  }
   return all;
 }
-function fileScopeIds(parent,viewOnly=false){const kids=viewOnly?childrenForView(parent):childrenOf(parent);return [String(parent.id),...kids.map(c=>String(c.id))]}
-function filesForParent(parent,viewOnly=false,language="전체"){const ids=new Set(fileScopeIds(parent,viewOnly));const files=state.files.filter(f=>ids.has(String(f.toolId))).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
+function fileScopeIds(parent,viewOnly=false,language="전체"){
+  const kids=viewOnly?childrenForView(parent,language):childrenOf(parent);
+  const entry=currentScopeEntry(),fam=familyOf(entry);
+  // 제품 상세 화면에서는 상위 OmniOx 공통 Tool 파일을 섞지 않습니다.
+  // 파일은 해당 제품의 세부 Tool에 연결된 것만 노출합니다.
+  if(viewOnly&&entry?.type==="product"&&fam?.mode==="child"&&parent.product===fam.dataKey)return kids.map(c=>String(c.id));
+  return [String(parent.id),...kids.map(c=>String(c.id))];
+}
+function filesForParent(parent,viewOnly=false,language="전체"){const ids=new Set(fileScopeIds(parent,viewOnly,language));const files=state.files.filter(f=>ids.has(String(f.toolId))).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
 function fileCountForParent(parent){return filesForParent(parent,true,state.fileLanguage).length}
 function fileLanguageCounts(parent){const files=filesForParent(parent,true,"전체");return {total:files.length,domestic:files.filter(f=>languageBucket(f.language)==="국내").length,overseas:files.filter(f=>languageBucket(f.language)==="해외").length,shared:files.filter(f=>languageBucket(f.language)==="공용").length}}
 function bytesLabel(n){const v=Number(n)||0;if(!v)return"";if(v<1024)return`${v} B`;if(v<1024*1024)return`${(v/1024).toFixed(1)} KB`;return`${(v/1024/1024).toFixed(v>10*1024*1024?0:1)} MB`}
@@ -263,11 +289,11 @@ function rebuildFilters(){
 
 function openDetail(id){
   const wasOpen=$("#detailDialog").open;
-  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;const children=childrenForView(parent);if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";const allFiles=filesForParent(parent,true,"전체");const files=filterFilesByLanguage(allFiles,state.detailLanguage);const langCounts={전체:allFiles.length,국내:allFiles.filter(f=>languageBucket(f.language)==="국내").length,해외:allFiles.filter(f=>languageBucket(f.language)==="해외").length,공용:allFiles.filter(f=>languageBucket(f.language)==="공용").length};
+  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";const children=childrenForView(parent,state.detailLanguage);const allFiles=filesForParent(parent,true,"전체");const files=filesForParent(parent,true,state.detailLanguage);const langCounts={전체:allFiles.length,국내:filesForParent(parent,true,"국내").length,해외:filesForParent(parent,true,"해외").length,공용:filesForParent(parent,true,"공용").length};
   $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"}`;$("#detailTitle").textContent=parent.item;
   $("#detailBody").innerHTML=`
     <div class="detail-summary"><div><span class="badge ${statusClass(parent.status)}">${esc(parent.status)}</span><p>${esc(parent.description||"설명 없음")}</p><div class="detail-info"><span>No. ${esc(parent.no||"-")}</span><span>최종 업데이트 ${esc(fmtDate(parent.updatedAt))}</span></div>${parent.note?`<div class="detail-note">${esc(parent.note)}</div>`:""}</div></div>
-    ${children.length?`<div class="variant-list"><div class="variant-list-title">세부 Tool · ${children.length}종</div>${children.map(c=>`<div class="variant-row"><div class="variant-name"><strong>${esc(c.item)}</strong><span>${esc(c.note||c.description||"세부 자료")}</span></div><span class="badge ${statusClass(c.status)}">${esc(c.status)}</span><span class="date-col tool-meta">📎 ${filesForToolId(c.id).length} · ${esc(fmtDate(c.updatedAt))}</span><button class="row-btn" data-detail-edit="${esc(c.id)}">⋯</button></div>`).join("")}</div>`:""}
+    ${children.length?`<div class="variant-list"><div class="variant-list-title">세부 Tool · ${children.length}종</div>${children.map(c=>{const market=hft750MarketForChild(c);return `<div class="variant-row"><div class="variant-name"><strong>${esc(c.item)}</strong><span>${market?`${esc(market)}용 · `:""}${esc(c.note||c.description||"세부 자료")}</span></div><span class="badge ${statusClass(c.status)}">${esc(c.status)}</span><span class="date-col tool-meta">📎 ${filesForToolId(c.id).length} · ${esc(fmtDate(c.updatedAt))}</span><button class="row-btn" data-detail-edit="${esc(c.id)}">⋯</button></div>`}).join("")}</div>`:""}
     <div class="material-section">
       <div class="material-section-head"><div><b>등록 자료</b><span>국내 · 해외 · 공용 자료로 구분합니다. 전체 ${allFiles.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ 자료 등록</button></div>
       <div class="material-language-tabs">${["전체","국내","해외","공용"].map(lang=>`<button type="button" class="material-language-tab ${state.detailLanguage===lang?"active":""}" data-detail-language="${lang}"><span>${lang}</span><b>${langCounts[lang]}</b></button>`).join("")}</div>
@@ -295,12 +321,24 @@ function setMaterialMode(mode){
   $("#materialUploadField").hidden=mode!=="upload";$("#materialLinkField").hidden=mode!=="link";
   $("#saveMaterialBtn").textContent=mode==="upload"?"Drive에 업로드":"Drive 링크 등록";
 }
+function refreshMaterialTargets(parent){
+  const entry=currentScopeEntry(),fam=familyOf(entry),language=$("#materialLanguage").value||"전체";
+  let targets=[];
+  if(entry?.type==="product"&&fam?.mode==="child"&&parent.product===fam.dataKey){
+    targets=childrenForView(parent,language);
+  }else{
+    targets=[parent,...childrenForView(parent,language)];
+  }
+  $("#materialTarget").innerHTML=targets.length?targets.map(t=>`<option value="${esc(t.id)}">${t===parent?"공통 Tool · ":"제품 Tool · "}${esc(t.item)}</option>`).join(""):'<option value="">등록 가능한 제품 Tool이 없습니다.</option>';
+  $("#saveMaterialBtn").disabled=!targets.length;
+}
 function openMaterialDialog(parentId){
   if($("#detailDialog").open)$("#detailDialog").close();
   const parent=state.items.find(x=>String(x.id)===String(parentId));if(!parent)return;
   materialState.parentId=String(parent.id);setMaterialMode("upload");
   $("#materialFile").value="";$("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value=["국내","해외","공용"].includes(state.fileLanguage)?state.fileLanguage:"국내";$("#materialNote").value="";$("#materialCurrent").checked=true;
-  const targets=[parent,...childrenForView(parent)];$("#materialTarget").innerHTML=targets.map((t,i)=>`<option value="${esc(t.id)}">${i===0?"공통 Tool · ":"세부 Tool · "}${esc(t.item)}</option>`).join("");
+  refreshMaterialTargets(parent);
+  $("#materialLanguage").onchange=()=>refreshMaterialTargets(parent);
   $("#materialDialog").showModal();
 }
 function readFileAsDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||""));r.onerror=()=>reject(r.error||new Error("FILE_READ_ERROR"));r.readAsDataURL(file)})}
