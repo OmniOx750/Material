@@ -50,6 +50,21 @@ const normalizeAppsScriptUrl=url=>url.replace(/\/a\/macros\/[^/]+\/s\//,"/macros
 const API_CANDIDATES=[normalizeAppsScriptUrl(RAW_API_URL),RAW_API_URL].filter((v,i,a)=>v&&a.indexOf(v)===i);
 let ACTIVE_API_URL=API_CANDIDATES[0]||"";
 const state={items:[],files:[],product:"전체",search:"",status:"",category:"",connected:false};
+const VENT_PRODUCTS=["MTV1000","MV2000","MV50"];
+const OMNIOX_SCOPES=["HFT700","HFT750","HFT751"];
+const FIXED_PRODUCTS=["OmniOx",...VENT_PRODUCTS];
+const NAV_GROUPS=[
+  {id:"OmniOx",label:"OmniOx",children:[
+    {id:"HFT700",label:"700 Series"},
+    {id:"HFT750",label:"750 Series"},
+    {id:"HFT751",label:"751 Series"}
+  ]},
+  {id:"Vent",label:"Vent",children:[
+    {id:"MTV1000",label:"MTV1000"},
+    {id:"MV2000",label:"MV2000"},
+    {id:"MV50",label:"MV50"}
+  ]}
+];
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
 const $=s=>document.querySelector(s);
@@ -128,23 +143,43 @@ function setSync(mode,title,sub){
   $("#syncDot").classList.remove("on","error"); if(mode) $("#syncDot").classList.add(mode);
   $("#syncText").textContent=title; $("#syncSub").textContent=sub;
 }
-function products(){return [...new Set(state.items.map(x=>x.product).filter(Boolean))]}
+function products(){return [...new Set([...FIXED_PRODUCTS,...state.items.map(x=>x.product).filter(Boolean)])]}
 function compareNo(a,b){return String(a.no||"").localeCompare(String(b.no||""),"ko",{numeric:true,sensitivity:"base"})}
 function topTools(items=state.items){return items.filter(x=>!isChild(x)).sort((a,b)=>String(a.product||"").localeCompare(String(b.product||""),"ko")||compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
 function categories(){return [...new Set(topTools().map(x=>x.category).filter(Boolean))]}
 function childrenOf(parent){const base=String(parent.no||"").replace(/\.$/,"");return state.items.filter(x=>x.product===parent.product&&isChild(x)&&baseNo(x)===base).sort((a,b)=>compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
 function parentOf(item){if(!isChild(item)) return item;return state.items.find(x=>x.product===item.product&&!isChild(x)&&String(x.no||"").replace(/\.$/,"")===baseNo(item))||null}
 function filesForToolId(toolId){return state.files.filter(f=>String(f.toolId)===String(toolId)).sort((a,b)=>String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")))}
-function fileScopeIds(parent){return [String(parent.id),...childrenOf(parent).map(c=>String(c.id))]}
-function filesForParent(parent){const ids=new Set(fileScopeIds(parent));return state.files.filter(f=>ids.has(String(f.toolId))).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")))}
-function fileCountForParent(parent){return filesForParent(parent).length}
+function omniSeriesMatch(name,scope){
+  const t=String(name||"").toUpperCase().replace(/\s+/g,"");
+  if(scope==="HFT700") return /HFT?700/.test(t);
+  if(scope==="HFT750") return /HFT?750/.test(t);
+  if(scope==="HFT751") return /HFT?751/.test(t);
+  return false;
+}
+function childrenForView(parent){
+  const all=childrenOf(parent);
+  if(parent.product==="OmniOx"&&OMNIOX_SCOPES.includes(state.product)) return all.filter(c=>omniSeriesMatch(c.item,state.product));
+  return all;
+}
+function fileScopeIds(parent,viewOnly=false){const kids=viewOnly?childrenForView(parent):childrenOf(parent);return [String(parent.id),...kids.map(c=>String(c.id))]}
+function filesForParent(parent,viewOnly=false){const ids=new Set(fileScopeIds(parent,viewOnly));return state.files.filter(f=>ids.has(String(f.toolId))).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")))}
+function fileCountForParent(parent){return filesForParent(parent,true).length}
 function bytesLabel(n){const v=Number(n)||0;if(!v)return"";if(v<1024)return`${v} B`;if(v<1024*1024)return`${(v/1024).toFixed(1)} KB`;return`${(v/1024/1024).toFixed(v>10*1024*1024?0:1)} MB`}
 function targetName(toolId){return state.items.find(x=>String(x.id)===String(toolId))?.item||"Tool"}
-function scopedTopTools(){return topTools().filter(x=>state.product==="전체"||x.product===state.product)}
+function scopeDefaultProduct(){if(OMNIOX_SCOPES.includes(state.product)||state.product==="OmniOx")return"OmniOx";if(VENT_PRODUCTS.includes(state.product))return state.product;return products().includes(state.product)?state.product:""}
+function scopeLabel(){if(state.product==="HFT700")return"OmniOx · 700 Series";if(state.product==="HFT750")return"OmniOx · 750 Series";if(state.product==="HFT751")return"OmniOx · 751 Series";return state.product}
+function scopedTopTools(){
+  const all=topTools();
+  if(state.product==="전체")return all;
+  if(state.product==="Vent")return all.filter(x=>VENT_PRODUCTS.includes(x.product));
+  if(OMNIOX_SCOPES.includes(state.product))return all.filter(x=>x.product==="OmniOx"&&childrenOf(x).some(c=>omniSeriesMatch(c.item,state.product)));
+  return all.filter(x=>x.product===state.product);
+}
 function filteredTools(){
   const q=state.search.toLowerCase().trim();
   return scopedTopTools().filter(x=>{
-    const children=childrenOf(x);
+    const children=childrenForView(x);
     const text=[x.product,x.category,x.item,x.description,x.note,...children.flatMap(c=>[c.item,c.description,c.note])].join(" ").toLowerCase();
     return (!state.status||x.status===state.status)&&(!state.category||x.category===state.category)&&(!q||text.includes(q));
   });
@@ -157,15 +192,26 @@ function categoryIcon(category){if(category.includes("제품 소개"))return"▤
 
 function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderToolSections()}
 function renderProductNav(){
-  $("#productNav").innerHTML=products().map(p=>`<button class="nav-item ${state.product===p?'active':''}" data-product-nav="${esc(p)}"><span class="product-dot"></span><b>${esc(p)}</b></button>`).join("");
+  const known=new Set(["OmniOx",...VENT_PRODUCTS]);
+  const groups=NAV_GROUPS.map(group=>{
+    const groupActive=state.product===group.id||group.children.some(c=>state.product===c.id);
+    return `<div class="nav-group ${groupActive?'open':''}">
+      <button class="nav-item nav-parent ${state.product===group.id?'active':''}" data-product-nav="${esc(group.id)}"><span class="nav-folder">${group.id==="Vent"?'V':'O'}</span><b>${esc(group.label)}</b><span class="nav-caret">⌄</span></button>
+      <div class="nav-children">${group.children.map(c=>`<button class="nav-subitem ${state.product===c.id?'active':''}" data-product-nav="${esc(c.id)}"><span></span><b>${esc(c.label)}</b></button>`).join("")}</div>
+    </div>`;
+  }).join("");
+  const extra=products().filter(p=>!known.has(p));
+  const extras=extra.length?`<div class="nav-extra-title">OTHER</div>${extra.map(p=>`<button class="nav-item ${state.product===p?'active':''}" data-product-nav="${esc(p)}"><span class="product-dot"></span><b>${esc(p)}</b></button>`).join("")}`:"";
+  $("#productNav").innerHTML=groups+extras;
   document.querySelector('[data-product-nav="전체"]').classList.toggle("active",state.product==="전체");
   document.querySelectorAll("[data-product-nav]").forEach(b=>b.onclick=()=>selectProduct(b.dataset.productNav));
 }
-function selectProduct(product){state.product=product;state.category="";$("#categoryFilter").value="";render();window.scrollTo({top:0,behavior:"smooth"})}
+function selectProduct(product){state.product=product;state.category="";$("#categoryFilter").value="";rebuildFilters();render();window.scrollTo({top:0,behavior:"smooth"})}
 function renderHeader(){
-  const name=state.product==="전체"?"영업 Tool 보유 현황":`${state.product} Sales Tool`;
+  const label=scopeLabel();
+  const name=state.product==="전체"?"영업 Tool 보유 현황":`${label} Sales Tool`;
   $("#pageTitle").textContent=name;
-  $("#pageSubtitle").textContent=state.product==="전체"?"제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.":`${state.product}의 카다로그, 브로슈어, 매뉴얼 등 영업 자료를 확인합니다.`;
+  $("#pageSubtitle").textContent=state.product==="전체"?"제품군과 시리즈별 영업 자료를 Tool 단위로 확인하고 관리합니다.":`${label}의 카다로그, 브로슈어, 매뉴얼과 Drive 자료를 확인합니다.`;
 }
 function renderStats(){
   const t=totals();
@@ -173,25 +219,31 @@ function renderStats(){
   $("#stats").innerHTML=cards.map(c=>`<div class="stat"><div class="stat-top"><span class="stat-label">${c[0]}</span><span class="stat-icon">${c[3]}</span></div><div class="stat-value">${c[1]}</div><div class="stat-sub">${c[2]}</div></div>`).join("");
 }
 function renderOverview(){
-  const t=totals();const label=state.product==="전체"?"전체 제품":state.product;
+  const t=totals();const label=state.product==="전체"?"전체 제품":scopeLabel();
   $("#overviewTitle").textContent=label;
-  $("#overviewDescription").textContent=state.product==="전체"?`${products().length}개 제품의 핵심 영업 Tool 현황입니다.`:`${state.product}의 핵심 영업 Tool ${t.total}개를 관리 중입니다.`;
+  let desc="";
+  if(state.product==="전체") desc="OmniOx와 Vent 제품군의 핵심 영업 Tool 현황입니다.";
+  else if(state.product==="Vent") desc="MTV1000 · MV2000 · MV50 영업 Tool을 한 번에 확인합니다.";
+  else if(OMNIOX_SCOPES.includes(state.product)) desc=`OmniOx ${scopeLabel().split(" · ")[1]}에 연결된 세부 Tool과 자료입니다.`;
+  else desc=`${label}의 핵심 영업 Tool ${t.total}개를 관리 중입니다.`;
+  $("#overviewDescription").textContent=desc;
   $("#overviewRate").innerHTML=`<strong>${t.rate}%</strong><span>Tool 확보율</span>`;
   $("#productProgress").innerHTML=`<div class="progress-track"><div class="progress-fill" style="width:${t.rate}%"></div></div><div class="progress-copy"><b>${t.owned}/${t.total}</b> 보유</div>`;
 }
 function renderToolSections(){
   const tools=filteredTools(); $("#resultCount").textContent=`${tools.length}개 Tool`; $("#emptyState").hidden=tools.length>0;
   const grouped=new Map(); tools.forEach(x=>{const k=x.category||"기타";if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(x)});
+  const label=scopeLabel();
   $("#toolSections").innerHTML=[...grouped.entries()].map(([category,items])=>`
     <section class="tool-section">
-      <div class="tool-section-head"><div><h2>${esc(category)}</h2><p>${esc(state.product==="전체"?"제품별 해당 Tool을 카드로 확인합니다.":`${state.product} · ${category}`)}</p></div><span class="section-count">${items.length}개</span></div>
+      <div class="tool-section-head"><div><h2>${esc(category)}</h2><p>${esc(state.product==="전체"?"제품군별 해당 Tool을 카드로 확인합니다.":`${label} · ${category}`)}</p></div><span class="section-count">${items.length}개</span></div>
       <div class="tool-grid">${items.map(toolCard).join("")}</div>
     </section>`).join("");
   document.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>openDetail(b.dataset.detail));
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();openEdit(b.dataset.edit)});
 }
 function toolCard(x){
-  const children=childrenOf(x);const preview=children.slice(0,3).map(c=>`<span class="variant-chip">${esc(c.item)}</span>`).join("")+(children.length>3?`<span class="variant-more">+${children.length-3}</span>`:"");
+  const children=childrenForView(x);const preview=children.slice(0,3).map(c=>`<span class="variant-chip">${esc(c.item)}</span>`).join("")+(children.length>3?`<span class="variant-more">+${children.length-3}</span>`:"");
   const update=x.updatedAt?`업데이트 ${fmtDate(x.updatedAt)}`:children.find(c=>c.updatedAt)?`세부자료 ${children.length}종`:"업데이트 기록 없음";
   const fileCount=fileCountForParent(x);
   return `<article class="tool-card" data-detail="${esc(x.id)}">
@@ -210,8 +262,8 @@ function rebuildFilters(){
 
 function openDetail(id){
   const wasOpen=$("#detailDialog").open;
-  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;const children=childrenOf(parent);const files=filesForParent(parent);
-  $("#detailEyebrow").textContent=`${parent.product} · ${parent.category||"SALES TOOL"}`;$("#detailTitle").textContent=parent.item;
+  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;const children=childrenForView(parent);const files=filesForParent(parent,true);
+  $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"}`;$("#detailTitle").textContent=parent.item;
   $("#detailBody").innerHTML=`
     <div class="detail-summary"><div><span class="badge ${statusClass(parent.status)}">${esc(parent.status)}</span><p>${esc(parent.description||"설명 없음")}</p><div class="detail-info"><span>No. ${esc(parent.no||"-")}</span><span>최종 업데이트 ${esc(fmtDate(parent.updatedAt))}</span></div>${parent.note?`<div class="detail-note">${esc(parent.note)}</div>`:""}</div></div>
     ${children.length?`<div class="variant-list"><div class="variant-list-title">세부 Tool · ${children.length}종</div>${children.map(c=>`<div class="variant-row"><div class="variant-name"><strong>${esc(c.item)}</strong><span>${esc(c.note||c.description||"세부 자료")}</span></div><span class="badge ${statusClass(c.status)}">${esc(c.status)}</span><span class="date-col tool-meta">📎 ${filesForToolId(c.id).length} · ${esc(fmtDate(c.updatedAt))}</span><button class="row-btn" data-detail-edit="${esc(c.id)}">⋯</button></div>`).join("")}</div>`:""}
@@ -245,7 +297,7 @@ function openMaterialDialog(parentId){
   const parent=state.items.find(x=>String(x.id)===String(parentId));if(!parent)return;
   materialState.parentId=String(parent.id);setMaterialMode("upload");
   $("#materialFile").value="";$("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value="";$("#materialNote").value="";$("#materialCurrent").checked=true;
-  const targets=[parent,...childrenOf(parent)];$("#materialTarget").innerHTML=targets.map((t,i)=>`<option value="${esc(t.id)}">${i===0?"대표 Tool · ":"세부 Tool · "}${esc(t.item)}</option>`).join("");
+  const targets=[parent,...childrenForView(parent)];$("#materialTarget").innerHTML=targets.map((t,i)=>`<option value="${esc(t.id)}">${i===0?"공통 Tool · ":"세부 Tool · "}${esc(t.item)}</option>`).join("");
   $("#materialDialog").showModal();
 }
 function readFileAsDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||""));r.onerror=()=>reject(r.error||new Error("FILE_READ_ERROR"));r.readAsDataURL(file)})}
@@ -281,7 +333,7 @@ async function deleteMaterial(fileId,parentId){
 
 function fillProductSelect(selected){
   const ps=products();$("#productSelect").innerHTML=ps.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("")+'<option value="__new__">＋ 새 제품 추가</option>';
-  $("#productSelect").value=selected&&ps.includes(selected)?selected:(state.product!=="전체"&&ps.includes(state.product)?state.product:(ps[0]||"__new__"));toggleNewProduct();
+  const scoped=scopeDefaultProduct();$("#productSelect").value=selected&&ps.includes(selected)?selected:(scoped&&ps.includes(scoped)?scoped:(ps[0]||"__new__"));toggleNewProduct();
 }
 function toggleNewProduct(){
   const isNew=$("#productSelect").value==="__new__";
@@ -377,7 +429,7 @@ async function saveItem(e){
   try{
     if(state.connected){await apiPost("save",{item});await loadData();toast("Google Sheets에 저장했습니다.");}
     else{const idx=state.items.findIndex(x=>String(x.id)===String(item.id));if(idx>=0)state.items[idx]=item;else state.items.push(item);toast("샘플 모드에만 반영되었습니다. Sheets 연결이 필요합니다.");rebuildFilters();render();}
-    $("#itemDialog").close();if(state.product!=="전체"&&item.product!==state.product)selectProduct(item.product);
+    $("#itemDialog").close();if(state.product==="전체"){}else if(state.product==="Vent"&&VENT_PRODUCTS.includes(item.product)){}else if(OMNIOX_SCOPES.includes(state.product)&&item.product==="OmniOx"){}else if(item.product!==state.product)selectProduct(item.product);
   }catch(err){console.error(err);toast("저장 중 오류가 발생했습니다.")}
 }
 async function deleteItem(){
