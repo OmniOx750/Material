@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <meta name="theme-color" content="#f6f8fb" />
   <title>MEKICS Sales Tool Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="mekics-glass-theme.css?v=20260908" />
+  <link rel="stylesheet" href="performance-tweaks.css?v=20260908" />
 </head>
 <body>
   <div class="app-shell">
@@ -247,8 +250,9 @@
   </dialog>
 
   <div class="toast" id="toast"></div>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <script src="performance-boost.js?v=20260908"></script>
 </body>
 </html>
