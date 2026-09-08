@@ -1,0 +1,8 @@
+/* Rendering performance tweaks: keep glass styling while reducing nested blur cost */
+@media (min-width:1001px){
+  .sidebar,.topbar,.panel{backdrop-filter:blur(22px) saturate(1.12)!important;-webkit-backdrop-filter:blur(22px) saturate(1.12)!important}
+  .stat,.tool-card,.panel-lite,.bulk-guide,.file-drop,.material-help,.structure-tip,.structure-section,.structure-add{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  dialog{backdrop-filter:blur(26px) saturate(1.12)!important;-webkit-backdrop-filter:blur(26px) saturate(1.12)!important}
+}
+.tool-card{content-visibility:auto;contain-intrinsic-size:210px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
