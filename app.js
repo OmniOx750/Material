@@ -60,8 +60,7 @@ const DEFAULT_NAV_CONFIG=[
   {id:"product-mv50",type:"product",parentId:"family-vent",name:"MV50",dataKey:"MV50",mode:"",order:3,active:true},
 
   {id:"family-patient-monitor",type:"family",parentId:"",name:"Patient Monitor",dataKey:"",mode:"direct",order:3,active:true},
-  {id:"product-mp10",type:"product",parentId:"family-patient-monitor",name:"MP10",dataKey:"MP10",mode:"",order:1,active:true},
-  {id:"product-mp12",type:"product",parentId:"family-patient-monitor",name:"MP12",dataKey:"MP12",mode:"",order:2,active:true},
+  {id:"product-mp1012",type:"product",parentId:"family-patient-monitor",name:"MP10/12",dataKey:"MP10/12",mode:"",order:1,active:true},
 
   {id:"family-pulse-oximeter",type:"family",parentId:"",name:"Pulse Oximeter",dataKey:"",mode:"direct",order:4,active:true},
   {id:"product-mp800",type:"product",parentId:"family-pulse-oximeter",name:"MP800",dataKey:"MP800",mode:"",order:1,active:true},
@@ -77,7 +76,7 @@ const DEFAULT_NAV_CONFIG=[
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:"전체",detailLanguage:"전체",connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV2";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV4";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -129,13 +128,20 @@ async function apiPost(action,payload={}){
 }
 
 function applyBootstrapResult(result){
-  state.items=(result.items||[]).map((x,i)=>({...x,id:String(x.id),order:Number(x.order)||i+1}));
+  state.items=(result.items||[]).map((x,i)=>({
+    ...x,
+    product:["MP10","MP12","MP10/12"].includes(String(x.product||""))?"MP10/12":x.product,
+    id:String(x.id),
+    order:Number(x.order)||i+1
+  }));
   state.files=(result.files||[]).map(x=>({...x,id:String(x.id),toolId:String(x.toolId),size:Number(x.size)||0,isCurrent:String(x.isCurrent)!=="false"&&x.isCurrent!==false}));
   const remoteNav=Array.isArray(result.navConfig)?result.navConfig:[];
   const navMap=new Map(DEFAULT_NAV_CONFIG.map(x=>[String(x.id),structuredClone(x)]));
   remoteNav.forEach(x=>{
     const id=String(x.id||"");
     if(!id)return;
+    if(["product-mp10","product-mp12"].includes(id))return;
+    if(["MP10","MP12"].includes(String(x.dataKey||"")))return;
     navMap.set(id,{...(navMap.get(id)||{}),...x});
   });
   state.navConfig=[...navMap.values()].map((x,i)=>({...x,id:String(x.id),parentId:String(x.parentId||""),order:Number(x.order)||i+1,active:String(x.active)!=="false"&&x.active!==false}));
@@ -288,12 +294,57 @@ function filteredTools(){
 function totals(items=scopedTopTools()){const total=items.length,owned=items.filter(x=>x.status==="보유").length,missing=items.filter(x=>x.status==="미보유").length,checking=items.filter(x=>x.status==="확인중").length;return {total,owned,missing,checking,rate:total?Math.round(owned/total*100):0}}
 function categoryIcon(category){if(category.includes("제품 소개"))return"▤";if(category.includes("사용"))return"◫";if(category.includes("인허가"))return"✓";if(category.includes("영업지원"))return"↗";if(category.includes("마케팅"))return"◇";return"□"}
 
-function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderLanguageFilter();renderToolSections()}
+function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderFamilyProductNav();renderLanguageFilter();renderToolSections()}
 function renderLanguageFilter(){document.querySelectorAll("[data-file-language]").forEach(b=>b.classList.toggle("active",b.dataset.fileLanguage===state.fileLanguage))}
 function renderProductNav(){
-  const families=navEntries("family");const groups=families.map(group=>{const kids=childrenConfig(group.id),groupActive=state.product===group.id||kids.some(c=>state.product===c.id);return `<div class="nav-group ${groupActive?'open':''}"><button class="nav-item nav-parent ${state.product===group.id?'active':''}" data-product-nav="${esc(group.id)}"><span class="nav-folder">${esc((group.name||"P").slice(0,1).toUpperCase())}</span><b>${esc(group.name)}</b><span class="nav-caret">⌄</span></button><div class="nav-children">${kids.map(c=>`<button class="nav-subitem ${state.product===c.id?'active':''}" data-product-nav="${esc(c.id)}"><span></span><b>${esc(c.name)}</b></button>`).join("")}</div></div>`}).join("");
-  const known=configuredDataKeys();const extra=products().filter(p=>!known.has(p));const extras=extra.length?`<div class="nav-extra-title">OTHER</div>${extra.map(p=>`<button class="nav-item ${state.product===`extra:${p}`?'active':''}" data-extra-product="${esc(p)}"><span class="product-dot"></span><b>${esc(p)}</b></button>`).join("")}`:"";
-  $("#productNav").innerHTML=groups+extras;document.querySelector('[data-product-nav="전체"]').classList.toggle("active",state.product==="전체");document.querySelectorAll("[data-product-nav]").forEach(b=>b.onclick=()=>selectProduct(b.dataset.productNav));document.querySelectorAll("[data-extra-product]").forEach(b=>b.onclick=()=>selectExtraProduct(b.dataset.extraProduct));
+  const families=navEntries("family");
+  $("#productNav").innerHTML=families.map(group=>{
+    const kids=childrenConfig(group.id);
+    const active=state.product===group.id||kids.some(c=>state.product===c.id);
+    return `<button class="nav-item nav-parent ${active?'active':''}" data-product-nav="${esc(group.id)}">
+      <span class="nav-folder">${esc((group.name||"P").slice(0,1).toUpperCase())}</span>
+      <b>${esc(group.name)}</b>
+    </button>`;
+  }).join("");
+  const allButton=document.querySelector('[data-product-nav="전체"]');
+  if(allButton)allButton.classList.toggle("active",state.product==="전체");
+  document.querySelectorAll("[data-product-nav]").forEach(b=>b.onclick=()=>selectProduct(b.dataset.productNav));
+}
+
+function renderFamilyProductNav(){
+  const wrap=$("#familyProductNav");
+  if(!wrap)return;
+  const entry=currentScopeEntry();
+  const family=familyOf(entry);
+  if(!family){
+    wrap.hidden=true;
+    wrap.innerHTML="";
+    return;
+  }
+  const products=childrenConfig(family.id);
+  wrap.hidden=false;
+  const selectedId=entry?.type==="product"?entry.id:family.id;
+  wrap.innerHTML=`
+    <div class="family-products-head">
+      <div>
+        <p class="eyebrow">PRODUCT LINEUP</p>
+        <h2>${esc(family.name)}</h2>
+        <p>제품을 선택하면 해당 제품의 Sales Tool만 확인할 수 있습니다.</p>
+      </div>
+      <span class="family-products-count">${products.length} Products</span>
+    </div>
+    <div class="family-product-tabs">
+      <button type="button" class="family-product-tab ${selectedId===family.id?'active':''}" data-family-product="${esc(family.id)}">
+        <span>All</span><small>${esc(family.name)}</small>
+      </button>
+      ${products.map(product=>`
+        <button type="button" class="family-product-tab ${selectedId===product.id?'active':''}" data-family-product="${esc(product.id)}">
+          <span>${esc(product.name)}</span><small>Sales Tool</small>
+        </button>`).join("")}
+    </div>`;
+  wrap.querySelectorAll("[data-family-product]").forEach(button=>{
+    button.onclick=()=>selectProduct(button.dataset.familyProduct);
+  });
 }
 function selectProduct(product){state.product=product;state.category="";$("#categoryFilter").value="";rebuildFilters();render();window.scrollTo({top:0,behavior:"smooth"})}
 function selectExtraProduct(product){state.product=`extra:${product}`;state.category="";$("#categoryFilter").value="";rebuildFilters();render();window.scrollTo({top:0,behavior:"smooth"})}
