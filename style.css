@@ -269,3 +269,24 @@ dialog{width:min(650px,calc(100vw - 30px));border:0;border-radius:16px;padding:0
   .drive-bulk-row{grid-template-columns:18px 1fr}
   .drive-bulk-status{grid-column:2;justify-self:start;max-width:none;text-align:left}
 }
+
+
+/* v10 · simplified Material information model */
+.compact-stats{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.overview-panel{
+  padding-bottom:18px;
+}
+.detail-summary{
+  display:block;
+}
+.tool-card{
+  min-height:165px;
+}
+.tool-card-top{
+  min-height:37px;
+}
+@media(max-width:700px){
+  .compact-stats{grid-template-columns:1fr 1fr}
+}
