@@ -77,6 +77,7 @@ const DEFAULT_NAV_CONFIG=[
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:"전체",detailLanguage:"전체",connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV2";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -89,7 +90,7 @@ function jsonp(url,params={}){
   return new Promise((resolve,reject)=>{
     const cb=`__mekics_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script=document.createElement("script");
-    const timer=setTimeout(()=>finish(new Error("TIMEOUT")),9000);
+    const timer=setTimeout(()=>finish(new Error("TIMEOUT")),6500);
     function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
     function finish(err,data){cleanup();err?reject(err):resolve(data)}
     window[cb]=data=>finish(null,data);
@@ -127,21 +128,57 @@ async function apiPost(action,payload={}){
   await sleep(action==="bulkUpsert"?1500:action==="uploadFile"?2200:1100);
 }
 
+function applyBootstrapResult(result){
+  state.items=(result.items||[]).map((x,i)=>({...x,id:String(x.id),order:Number(x.order)||i+1}));
+  state.files=(result.files||[]).map(x=>({...x,id:String(x.id),toolId:String(x.toolId),size:Number(x.size)||0,isCurrent:String(x.isCurrent)!=="false"&&x.isCurrent!==false}));
+  const remoteNav=Array.isArray(result.navConfig)?result.navConfig:[];
+  const navMap=new Map(DEFAULT_NAV_CONFIG.map(x=>[String(x.id),structuredClone(x)]));
+  remoteNav.forEach(x=>{
+    const id=String(x.id||"");
+    if(!id)return;
+    navMap.set(id,{...(navMap.get(id)||{}),...x});
+  });
+  state.navConfig=[...navMap.values()].map((x,i)=>({...x,id:String(x.id),parentId:String(x.parentId||""),order:Number(x.order)||i+1,active:String(x.active)!=="false"&&x.active!==false}));
+  state.connected=true;
+}
+
+function readBootstrapCache(){
+  try{
+    const raw=sessionStorage.getItem(BOOTSTRAP_CACHE_KEY);
+    if(!raw)return null;
+    const parsed=JSON.parse(raw);
+    return parsed&&parsed.data?parsed:null;
+  }catch(e){return null}
+}
+
+function writeBootstrapCache(result){
+  try{
+    sessionStorage.setItem(BOOTSTRAP_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:result}));
+  }catch(e){}
+}
+
 async function loadData(showMessage=false){
+  const cached=!showMessage?readBootstrapCache():null;
+
+  // First paint should never wait for Apps Script / Drive.
+  if(cached?.data){
+    applyBootstrapResult(cached.data);
+    setSync("on","최근 데이터 표시 중","최신 연결을 백그라운드에서 확인하고 있습니다.");
+    rebuildFilters(); render();
+  }else if(!showMessage){
+    state.items=structuredClone(SEED_DATA);
+    state.files=[];
+    state.navConfig=structuredClone(DEFAULT_NAV_CONFIG);
+    state.connected=false;
+    setSync("","연결 확인 중","화면은 먼저 열고 Google Sheets · Drive를 확인합니다.");
+    rebuildFilters(); render();
+  }
+
   try{
     if(API_CANDIDATES.length){
       const result=await apiList();
-      state.items=(result.items||[]).map((x,i)=>({...x,id:String(x.id),order:Number(x.order)||i+1}));
-      state.files=(result.files||[]).map(x=>({...x,id:String(x.id),toolId:String(x.toolId),size:Number(x.size)||0,isCurrent:String(x.isCurrent)!=="false"&&x.isCurrent!==false}));
-      const remoteNav=Array.isArray(result.navConfig)?result.navConfig:[];
-      const navMap=new Map(DEFAULT_NAV_CONFIG.map(x=>[String(x.id),structuredClone(x)]));
-      remoteNav.forEach(x=>{
-        const id=String(x.id||"");
-        if(!id)return;
-        navMap.set(id,{...(navMap.get(id)||{}),...x});
-      });
-      state.navConfig=[...navMap.values()].map((x,i)=>({...x,id:String(x.id),parentId:String(x.parentId||""),order:Number(x.order)||i+1,active:String(x.active)!=="false"&&x.active!==false}));
-      state.connected=true;
+      applyBootstrapResult(result);
+      writeBootstrapCache(result);
       setSync("on","Google Sheets · Drive 연결됨",`${state.items.length}개 Tool · ${state.files.length}개 자료`);
     }else{
       state.items=structuredClone(SEED_DATA); state.files=[]; state.navConfig=structuredClone(DEFAULT_NAV_CONFIG); state.connected=false;
@@ -149,8 +186,13 @@ async function loadData(showMessage=false){
     }
   }catch(e){
     console.error("Sheets connection:",e);
-    state.items=structuredClone(SEED_DATA); state.files=[]; state.navConfig=structuredClone(DEFAULT_NAV_CONFIG); state.connected=false;
-    setSync("error","연결 필요 · 샘플 데이터","Code.gs 재배포 후 새로고침");
+    if(cached?.data){
+      applyBootstrapResult(cached.data);
+      setSync("error","최근 데이터 표시 중","최신 연결이 지연되고 있습니다. 새로고침으로 다시 확인할 수 있습니다.");
+    }else{
+      state.items=structuredClone(SEED_DATA); state.files=[]; state.navConfig=structuredClone(DEFAULT_NAV_CONFIG); state.connected=false;
+      setSync("error","연결 필요 · 샘플 데이터","Google Apps Script 응답이 지연되거나 연결되지 않았습니다.");
+    }
     if(showMessage) toast("Google Sheets 연결을 다시 확인해주세요.");
   }
   rebuildFilters(); render();
