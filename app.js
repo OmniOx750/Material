@@ -59,20 +59,20 @@ const DEFAULT_NAV_CONFIG=[
   {id:"product-mv2000",type:"product",parentId:"family-vent",name:"MV2000",dataKey:"MV2000",mode:"",order:2,active:true},
   {id:"product-mv50",type:"product",parentId:"family-vent",name:"MV50",dataKey:"MV50",mode:"",order:3,active:true},
 
-  {id:"family-patient-monitor",type:"family",parentId:"",name:"페이션트 모니터",dataKey:"",mode:"direct",order:3,active:true},
+  {id:"family-patient-monitor",type:"family",parentId:"",name:"Patient Monitor",dataKey:"",mode:"direct",order:3,active:true},
   {id:"product-mp10",type:"product",parentId:"family-patient-monitor",name:"MP10",dataKey:"MP10",mode:"",order:1,active:true},
   {id:"product-mp12",type:"product",parentId:"family-patient-monitor",name:"MP12",dataKey:"MP12",mode:"",order:2,active:true},
 
-  {id:"family-pulse-oximeter",type:"family",parentId:"",name:"펄스옥시미터",dataKey:"",mode:"direct",order:4,active:true},
+  {id:"family-pulse-oximeter",type:"family",parentId:"",name:"Pulse Oximeter",dataKey:"",mode:"direct",order:4,active:true},
   {id:"product-mp800",type:"product",parentId:"family-pulse-oximeter",name:"MP800",dataKey:"MP800",mode:"",order:1,active:true},
 
-  {id:"family-airway-management",type:"family",parentId:"",name:"에어웨이매니지먼트",dataKey:"",mode:"direct",order:5,active:true},
+  {id:"family-airway-management",type:"family",parentId:"",name:"Airway Management",dataKey:"",mode:"direct",order:5,active:true},
   {id:"product-mnc100",type:"product",parentId:"family-airway-management",name:"MNC100",dataKey:"MNC100",mode:"",order:1,active:true},
   {id:"product-mh100",type:"product",parentId:"family-airway-management",name:"MH100",dataKey:"MH100",mode:"",order:2,active:true},
 
-  {id:"family-acc",type:"family",parentId:"",name:"ACC",dataKey:"",mode:"direct",order:6,active:true},
-  {id:"product-cannula",type:"product",parentId:"family-acc",name:"캐뉼라",dataKey:"Cannula",mode:"",order:1,active:true},
-  {id:"product-circuit",type:"product",parentId:"family-acc",name:"써킷",dataKey:"Circuit",mode:"",order:2,active:true}
+  {id:"family-acc",type:"family",parentId:"",name:"Accessories",dataKey:"",mode:"direct",order:6,active:true},
+  {id:"product-cannula",type:"product",parentId:"family-acc",name:"Cannula",dataKey:"Cannula",mode:"",order:1,active:true},
+  {id:"product-circuit",type:"product",parentId:"family-acc",name:"Breathing Circuit",dataKey:"Circuit",mode:"",order:2,active:true}
 ];
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:"전체",detailLanguage:"전체",connected:false};
 const materialState={parentId:"",mode:"upload"};
