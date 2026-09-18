@@ -124,7 +124,6 @@ async function apiPost(action,payload={}){
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body:JSON.stringify({action,...payload})
   });
-  await sleep(action==="bulkUpsert"?1500:action==="uploadFile"?2200:1100);
 }
 
 function applyBootstrapResult(result){
@@ -460,24 +459,39 @@ function openMaterialDialog(parentId){
   $("#materialDialog").showModal();
 }
 function readFileAsDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||""));r.onerror=()=>reject(r.error||new Error("FILE_READ_ERROR"));r.readAsDataURL(file)})}
+async function refreshMaterialAfterMutation(beforeCount,driveUrl=""){
+  const waits=[0,250,600,1200];
+  for(const wait of waits){
+    if(wait)await sleep(wait);
+    await loadData(false);
+    const matched=driveUrl&&state.files.some(f=>[f.driveUrl,f.viewUrl,f.downloadUrl].some(v=>String(v||"")===driveUrl));
+    if(state.files.length>beforeCount||matched)return true;
+  }
+  return false;
+}
+
 async function saveMaterial(){
   if(!state.connected)return toast("Google Sheets 연결 후 자료를 등록할 수 있습니다.");
   const toolId=$("#materialTarget").value;const version=$("#materialVersion").value.trim();const language=$("#materialLanguage").value;const note=$("#materialNote").value.trim();const isCurrent=$("#materialCurrent").checked;
   if(!toolId)return toast("연결할 Tool을 선택해주세요.");if(!language)return toast("국내 / 해외 / 공용 중 활용 구분을 선택해주세요.");
   const btn=$("#saveMaterialBtn");const original=btn.textContent;const beforeCount=state.files.length;
+  let driveUrl="";
   try{
-    btn.disabled=true;btn.textContent="등록 중...";
+    btn.disabled=true;
     if(materialState.mode==="upload"){
       const file=$("#materialFile").files?.[0];if(!file)throw new Error("파일을 선택해주세요.");
       if(file.size>8*1024*1024)throw new Error("직접 업로드는 8MB 이하만 권장합니다. 큰 파일은 Drive 링크 등록을 사용해주세요.");
+      btn.textContent="파일 전송 중...";
       const dataUrl=await readFileAsDataUrl(file);const base64=dataUrl.split(",")[1]||"";
       await apiPost("uploadFile",{file:{toolId,fileName:file.name,mimeType:file.type||"application/octet-stream",base64,version,language,note,isCurrent}});
     }else{
-      const driveUrl=$("#materialDriveUrl").value.trim();if(!driveUrl)throw new Error("Google Drive 링크를 입력해주세요.");
+      driveUrl=$("#materialDriveUrl").value.trim();if(!driveUrl)throw new Error("Google Drive 링크를 입력해주세요.");
+      btn.textContent="링크 저장 중...";
       await apiPost("registerDriveFile",{file:{toolId,driveUrl,version,language,note,isCurrent}});
     }
-    await loadData();
-    if(state.files.length<=beforeCount)throw new Error("Drive 등록 결과를 확인하지 못했습니다. Apps Script 배포/권한을 확인해주세요.");
+    btn.textContent="저장 확인 중...";
+    const verified=await refreshMaterialAfterMutation(beforeCount,driveUrl);
+    if(!verified)throw new Error("등록은 요청됐지만 최신 목록 반영이 지연되고 있습니다. 잠시 후 새로고침해주세요.");
     $("#materialDialog").close();toast("Google Drive 자료를 등록했습니다.");
     if(materialState.parentId)openDetail(materialState.parentId);
   }catch(err){console.error(err);toast(err.message||"자료 등록 중 오류가 발생했습니다.")}
