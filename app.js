@@ -340,9 +340,6 @@ function renderFamilyProductNav(){
       <span class="family-products-count">${products.length} Products</span>
     </div>
     <div class="family-product-tabs">
-      <button type="button" class="family-product-tab ${selectedId===family.id?'active':''}" data-family-product="${esc(family.id)}">
-        <span>All</span><small>${esc(family.name)}</small>
-      </button>
       ${products.map(product=>`
         <button type="button" class="family-product-tab ${selectedId===product.id?'active':''}" data-family-product="${esc(product.id)}">
           <span>${esc(product.name)}</span><small>Sales Tool</small>
