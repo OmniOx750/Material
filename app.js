@@ -57,7 +57,22 @@ const DEFAULT_NAV_CONFIG=[
   {id:"family-vent",type:"family",parentId:"",name:"Vent",dataKey:"",mode:"direct",order:2,active:true},
   {id:"product-mtv1000",type:"product",parentId:"family-vent",name:"MTV1000",dataKey:"MTV1000",mode:"",order:1,active:true},
   {id:"product-mv2000",type:"product",parentId:"family-vent",name:"MV2000",dataKey:"MV2000",mode:"",order:2,active:true},
-  {id:"product-mv50",type:"product",parentId:"family-vent",name:"MV50",dataKey:"MV50",mode:"",order:3,active:true}
+  {id:"product-mv50",type:"product",parentId:"family-vent",name:"MV50",dataKey:"MV50",mode:"",order:3,active:true},
+
+  {id:"family-patient-monitor",type:"family",parentId:"",name:"페이션트 모니터",dataKey:"",mode:"direct",order:3,active:true},
+  {id:"product-mp10",type:"product",parentId:"family-patient-monitor",name:"MP10",dataKey:"MP10",mode:"",order:1,active:true},
+  {id:"product-mp12",type:"product",parentId:"family-patient-monitor",name:"MP12",dataKey:"MP12",mode:"",order:2,active:true},
+
+  {id:"family-pulse-oximeter",type:"family",parentId:"",name:"펄스옥시미터",dataKey:"",mode:"direct",order:4,active:true},
+  {id:"product-mp800",type:"product",parentId:"family-pulse-oximeter",name:"MP800",dataKey:"MP800",mode:"",order:1,active:true},
+
+  {id:"family-airway-management",type:"family",parentId:"",name:"에어웨이 매니지먼트",dataKey:"",mode:"direct",order:5,active:true},
+  {id:"product-mnc100",type:"product",parentId:"family-airway-management",name:"MNC100",dataKey:"MNC100",mode:"",order:1,active:true},
+  {id:"product-mh100",type:"product",parentId:"family-airway-management",name:"MH100",dataKey:"MH100",mode:"",order:2,active:true},
+
+  {id:"family-acc",type:"family",parentId:"",name:"ACC",dataKey:"",mode:"direct",order:6,active:true},
+  {id:"product-cannula",type:"product",parentId:"family-acc",name:"캐뉼라",dataKey:"Cannula",mode:"",order:1,active:true},
+  {id:"product-circuit",type:"product",parentId:"family-acc",name:"써킷",dataKey:"Circuit",mode:"",order:2,active:true}
 ];
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:"전체",detailLanguage:"전체",connected:false};
 const materialState={parentId:"",mode:"upload"};
@@ -118,7 +133,14 @@ async function loadData(showMessage=false){
       const result=await apiList();
       state.items=(result.items||[]).map((x,i)=>({...x,id:String(x.id),order:Number(x.order)||i+1}));
       state.files=(result.files||[]).map(x=>({...x,id:String(x.id),toolId:String(x.toolId),size:Number(x.size)||0,isCurrent:String(x.isCurrent)!=="false"&&x.isCurrent!==false}));
-      state.navConfig=(result.navConfig&&result.navConfig.length?result.navConfig:structuredClone(DEFAULT_NAV_CONFIG)).map((x,i)=>({...x,id:String(x.id),parentId:String(x.parentId||""),order:Number(x.order)||i+1,active:String(x.active)!=="false"&&x.active!==false}));
+      const remoteNav=Array.isArray(result.navConfig)?result.navConfig:[];
+      const navMap=new Map(DEFAULT_NAV_CONFIG.map(x=>[String(x.id),structuredClone(x)]));
+      remoteNav.forEach(x=>{
+        const id=String(x.id||"");
+        if(!id)return;
+        navMap.set(id,{...(navMap.get(id)||{}),...x});
+      });
+      state.navConfig=[...navMap.values()].map((x,i)=>({...x,id:String(x.id),parentId:String(x.parentId||""),order:Number(x.order)||i+1,active:String(x.active)!=="false"&&x.active!==false}));
       state.connected=true;
       setSync("on","Google Sheets · Drive 연결됨",`${state.items.length}개 Tool · ${state.files.length}개 자료`);
     }else{
