@@ -203,3 +203,69 @@ dialog{width:min(650px,calc(100vw - 30px));border:0;border-radius:16px;padding:0
 .side-foot{
   margin-top:auto;
 }
+
+
+/* v9 · bulk Drive link registration */
+.drive-bulk-dialog{width:min(860px,calc(100vw - 30px))}
+.drive-bulk-summary{
+  margin-top:13px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 12px;
+  border:1px solid #e7ebf1;
+  border-radius:10px;
+  background:rgba(255,255,255,.46);
+}
+.drive-bulk-summary span{font-size:9px;color:#8f98a7;font-weight:700}
+.drive-bulk-summary strong{font-size:11px;color:#445168}
+.drive-bulk-preview{
+  margin-top:10px;
+  border:1px solid #e7ebf1;
+  border-radius:11px;
+  overflow:hidden;
+  max-height:360px;
+  overflow-y:auto;
+  background:rgba(255,255,255,.30);
+}
+.drive-bulk-preview[hidden]{display:none!important}
+.drive-bulk-row{
+  display:grid;
+  grid-template-columns:18px minmax(0,1fr) minmax(110px,auto);
+  gap:11px;
+  align-items:center;
+  padding:11px 12px;
+  border-bottom:1px solid #eef1f4;
+  cursor:pointer;
+}
+.drive-bulk-row:last-child{border-bottom:0}
+.drive-bulk-row:hover{background:rgba(255,255,255,.48)}
+.drive-bulk-row.invalid{opacity:.68;cursor:default}
+.drive-bulk-row input{width:15px;height:15px}
+.drive-bulk-main{min-width:0}
+.drive-bulk-main b,.drive-bulk-main span,.drive-bulk-main small{display:block}
+.drive-bulk-main b{font-size:11px;color:#3a4558}
+.drive-bulk-main span{margin-top:3px;font-size:9px;color:#7e8999}
+.drive-bulk-main small{
+  margin-top:4px;
+  font-size:8px;
+  color:#9aa3b1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.drive-bulk-status{
+  justify-self:end;
+  max-width:230px;
+  border-radius:99px;
+  padding:5px 8px;
+  font-size:8px;
+  font-weight:800;
+  text-align:right;
+}
+.drive-bulk-status.ok{color:#18775a;background:#eaf8f2}
+.drive-bulk-status.error{color:#b54a4a;background:#fff0ef;border-radius:8px;line-height:1.35}
+@media(max-width:700px){
+  .drive-bulk-row{grid-template-columns:18px 1fr}
+  .drive-bulk-status{grid-column:2;justify-self:start;max-width:none;text-align:left}
+}
