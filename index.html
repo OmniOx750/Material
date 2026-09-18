@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260918-5" />
+  <link rel="stylesheet" href="style.css?v=20260918-6" />
   <link rel="stylesheet" href="mekics-glass-theme.css?v=20260908" />
   <link rel="stylesheet" href="performance-tweaks.css?v=20260908" />
 </head>
@@ -210,22 +210,12 @@
         <button class="icon-btn" type="button" id="closeMaterialDialog">×</button>
       </div>
 
-      <div class="material-mode-tabs">
-        <button class="material-mode active" type="button" data-material-mode="upload">파일 직접 업로드</button>
-        <button class="material-mode" type="button" data-material-mode="link">Drive 링크 등록</button>
-      </div>
-
       <div class="material-form">
         <label class="span2">연결할 Tool<select id="materialTarget" required></select></label>
 
-        <label class="span2 material-upload-field" id="materialUploadField">파일
-          <input id="materialFile" type="file" />
-          <small>PDF, PPTX, XLSX, DOCX 등 · 직접 업로드는 파일당 8MB 이하 권장</small>
-        </label>
-
-        <label class="span2 material-link-field" id="materialLinkField" hidden>Google Drive 링크
+        <label class="span2 material-link-field" id="materialLinkField">Google Drive 링크
           <input id="materialDriveUrl" type="url" placeholder="https://drive.google.com/file/d/... 또는 docs.google.com/..." />
-          <small>용량이 큰 영상·PPT는 Drive에 먼저 올린 뒤 링크로 등록하면 안정적입니다.</small>
+          <small>Google Drive에 업로드한 자료의 공유 링크를 등록합니다.</small>
         </label>
 
         <label>버전<input id="materialVersion" placeholder="예: v2.1" /></label>
@@ -235,14 +225,14 @@
       </div>
 
       <div class="material-help">
-        <b>Drive 저장 구조</b>
-        <span>MEKICS Sales Material → 제품군 → 제품 → 분류 → Tool → 세부자료 → 국내/해외/공용 순으로 자동 정리됩니다.</span>
+        <b>등록 방식</b>
+        <span>파일은 Google Drive에서 관리하고, 이 페이지에는 링크와 활용 구분만 저장합니다.</span>
       </div>
 
       <div class="dialog-actions">
         <span></span>
         <button class="btn ghost" type="button" id="cancelMaterialBtn">취소</button>
-        <button class="btn primary" type="button" id="saveMaterialBtn">Drive에 등록</button>
+        <button class="btn primary" type="button" id="saveMaterialBtn">Drive 링크 등록</button>
       </div>
     </div>
   </dialog>
@@ -295,8 +285,8 @@
   <div class="toast" id="toast"></div>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20260918-5"></script>
-  <script src="drive-bulk-links.js?v=20260918-1"></script>
+  <script src="app.js?v=20260918-6"></script>
+  <script src="drive-bulk-links.js?v=20260918-2"></script>
   <script src="performance-boost.js?v=20260908"></script>
 </body>
 </html>
