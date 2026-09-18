@@ -56,7 +56,7 @@
     }
     return null;
   }
-  function resolveTarget(productName,toolName,detailName,language){
+  function resolveTarget(productName,toolName,language){
     var product=findProduct(productName);
     if(!product) return {error:"제품을 찾을 수 없습니다."};
     var family=familyOf(product);
@@ -68,37 +68,23 @@
       if(!parent) return {error:product.name+"의 “"+toolName+"” Tool을 찾을 수 없습니다."};
 
       var matches=childrenOf(parent).filter(function(c){ return childProductMatch(c.item,product.dataKey); });
-      if(detailName){
-        var child=findTool(matches,detailName);
-        if(!child) return {error:"세부 Tool “"+detailName+"”을 찾을 수 없습니다."};
-        return {toolId:String(child.id), label:product.name+" › "+parent.item+" › "+child.item};
-      }
-      if(matches.length===1){
-        return {toolId:String(matches[0].id), label:product.name+" › "+parent.item+" › "+matches[0].item};
-      }
-      if(matches.length>1){
+      if(matches.length){
         var byMarket=matches.filter(function(c){ return hft750MarketForChild(c)===language; });
-        if(byMarket.length===1) return {toolId:String(byMarket[0].id), label:product.name+" › "+parent.item+" › "+byMarket[0].item};
-        return {error:"세부 Tool을 지정해주세요. ("+matches.map(function(x){return x.item;}).join(", ")+")"};
+        var target=byMarket[0] || matches[0];
+        return {toolId:String(target.id), label:product.name+" › "+parent.item};
       }
-      return {error:product.name+"에 연결된 세부 Tool이 없습니다."};
+      return {toolId:String(parent.id), label:product.name+" › "+parent.item};
     }
 
     var productItems=topTools().filter(function(x){ return x.product===product.dataKey; });
     var parent2=findTool(productItems,toolName);
     if(!parent2) return {error:product.name+"의 “"+toolName+"” Tool을 찾을 수 없습니다."};
-    if(detailName){
-      var child2=findTool(childrenOf(parent2),detailName);
-      if(!child2) return {error:"세부 Tool “"+detailName+"”을 찾을 수 없습니다."};
-      return {toolId:String(child2.id), label:product.name+" › "+parent2.item+" › "+child2.item};
-    }
     return {toolId:String(parent2.id), label:product.name+" › "+parent2.item};
   }
 
   function parseRow(row,rowIndex){
     var product=normalizeProduct(cell(row,["제품","Product"]));
     var tool=val(cell(row,["Tool","영업 Tool","영업 Tool 항목","Tool명"]));
-    var detail=val(cell(row,["세부 Tool","세부Tool","Detail Tool","Detail"]));
     var displayName=val(cell(row,["자료명","File Name","Filename","파일명"]));
     var driveUrl=val(cell(row,["Drive 링크","Drive URL","DriveURL","링크","URL"]));
     var language=normalizeLanguage(cell(row,["활용 구분","활용구분","Language","구분"]));
@@ -114,11 +100,11 @@
 
     var resolved={};
     if(!error){
-      resolved=resolveTarget(product,tool,detail,language);
+      resolved=resolveTarget(product,tool,language);
       if(resolved.error) error=resolved.error;
     }
     return {
-      rowIndex:rowIndex, product:product, tool:tool, detail:detail, displayName:displayName,
+      rowIndex:rowIndex, product:product, tool:tool, displayName:displayName,
       driveUrl:driveUrl, language:language, version:version, current:current, note:note,
       toolId:resolved.toolId||"", label:resolved.label||"", valid:!error, error:error
     };
@@ -205,43 +191,37 @@
 
   function downloadTemplate(){
     if(typeof XLSX==="undefined") return toast("Excel 모듈을 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
-    var headers=["제품","Tool","세부 Tool","자료명","Drive 링크","활용 구분","버전","현재 사용본","비고"];
+    var headers=["제품","Tool","자료명","Drive 링크","활용 구분","버전","현재 사용본","비고"];
     var sample=[
-      ["MV50","제품 카다로그","","MV50 Catalog EN","https://drive.google.com/file/d/FILE_ID/view","해외","v2.0","Y","CE MDR 반영본"],
-      ["HFT750","제품 카다로그","HFT750A","HFT750A Catalog KR","https://drive.google.com/file/d/FILE_ID/view","국내","v1.0","Y","국내 영업용"]
+      ["MV50","제품 카다로그","MV50 Catalog EN","https://drive.google.com/file/d/FILE_ID/view","해외","v2.0","Y","CE MDR 반영본"],
+      ["HFT750","제품 카다로그","HFT750 Catalog KR","https://drive.google.com/file/d/FILE_ID/view","국내","v1.0","Y","국내 영업용"]
     ];
     var guide=[
       ["항목","입력 방법"],
       ["제품","페이지의 제품명과 동일하게 입력: MV50, MP10/12, HFT750 등"],
       ["Tool","페이지의 Sales Tool명과 동일하게 입력"],
-      ["세부 Tool","OmniOx처럼 세부제품이 여러 개일 때만 입력"],
       ["Drive 링크","drive.google.com 또는 docs.google.com 공유 링크"],
       ["활용 구분","국내 / 해외 / 공용"],
       ["버전","선택 입력"],
       ["현재 사용본","Y 또는 N, 비워두면 Y"],
       ["비고","선택 입력"]
     ];
-    var list=[["제품군","제품","Tool","세부 Tool"]];
+    var list=[["제품군","제품","Tool"]];
     navEntries("product").forEach(function(product){
       var family=familyOf(product);
       if(!family) return;
-      if(family.mode==="child"){
-        topTools().filter(function(t){return t.product===family.dataKey;}).forEach(function(parent){
-          var kids=childrenOf(parent).filter(function(c){return childProductMatch(c.item,product.dataKey);});
-          if(kids.length) kids.forEach(function(child){list.push([family.name,product.name,parent.item,child.item]);});
-          else list.push([family.name,product.name,parent.item,""]);
-        });
-      }else{
-        topTools().filter(function(t){return t.product===product.dataKey;}).forEach(function(parent){
-          var kids=childrenOf(parent);
-          if(kids.length) kids.forEach(function(child){list.push([family.name,product.name,parent.item,child.item]);});
-          else list.push([family.name,product.name,parent.item,""]);
-        });
-      }
+      var sourceKey=family.mode==="child"?family.dataKey:product.dataKey;
+      var seen={};
+      topTools().filter(function(t){return t.product===sourceKey;}).forEach(function(parent){
+        var k=key(parent.item);
+        if(seen[k]) return;
+        seen[k]=true;
+        list.push([family.name,product.name,parent.item]);
+      });
     });
     var wb=XLSX.utils.book_new();
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(sample));
-    ws["!cols"]=[{wch:15},{wch:24},{wch:20},{wch:28},{wch:55},{wch:12},{wch:12},{wch:14},{wch:30}];
+    ws["!cols"]=[{wch:15},{wch:24},{wch:28},{wch:55},{wch:12},{wch:12},{wch:14},{wch:30}];
     XLSX.utils.book_append_sheet(wb,ws,"Drive 링크 등록");
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(guide),"작성 안내");
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(list),"제품-Tool 목록");
