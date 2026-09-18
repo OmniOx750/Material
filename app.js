@@ -66,7 +66,7 @@ const DEFAULT_NAV_CONFIG=[
   {id:"family-pulse-oximeter",type:"family",parentId:"",name:"펄스옥시미터",dataKey:"",mode:"direct",order:4,active:true},
   {id:"product-mp800",type:"product",parentId:"family-pulse-oximeter",name:"MP800",dataKey:"MP800",mode:"",order:1,active:true},
 
-  {id:"family-airway-management",type:"family",parentId:"",name:"에어웨이 매니지먼트",dataKey:"",mode:"direct",order:5,active:true},
+  {id:"family-airway-management",type:"family",parentId:"",name:"에어웨이매니지먼트",dataKey:"",mode:"direct",order:5,active:true},
   {id:"product-mnc100",type:"product",parentId:"family-airway-management",name:"MNC100",dataKey:"MNC100",mode:"",order:1,active:true},
   {id:"product-mh100",type:"product",parentId:"family-airway-management",name:"MH100",dataKey:"MH100",mode:"",order:2,active:true},
 
