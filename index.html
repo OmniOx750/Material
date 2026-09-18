@@ -45,6 +45,7 @@
           <button class="btn ghost" id="refreshBtn">↻ 새로고침</button>
           <button class="btn ghost" id="manageStructureBtn">⚙ 제품 / 이름 관리</button>
           <button class="btn ghost" id="bulkBtn">⇧ Excel 일괄 등록</button>
+          <button class="btn ghost" id="driveBulkBtn">↗ Drive 링크 일괄 등록</button>
           <button class="btn primary" id="addBtn">＋ Tool 추가</button>
         </div>
       </header>
@@ -162,6 +163,52 @@
   </dialog>
 
 
+
+  <dialog id="driveBulkDialog" class="bulk-dialog drive-bulk-dialog">
+    <div class="detail-wrap">
+      <div class="dialog-head">
+        <div><p class="eyebrow">BULK LINK · GOOGLE DRIVE</p><h2>Drive 링크 일괄 등록</h2></div>
+        <button class="icon-btn" type="button" id="closeDriveBulkDialog">×</button>
+      </div>
+
+      <div class="bulk-guide">
+        <div class="bulk-guide-icon">D</div>
+        <div>
+          <b>파일은 Google Drive에 먼저 올리고, 링크와 자료 정보만 Excel로 한 번에 등록합니다.</b>
+          <p>제품 · Tool · Drive 링크 · 활용 구분을 기준으로 기존 Sales Tool에 자동 매칭합니다. 등록 전에 오류 행을 미리 확인할 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div class="bulk-actions-top">
+        <label class="file-drop" for="driveBulkExcelFile">
+          <input id="driveBulkExcelFile" type="file" accept=".xlsx,.xls" hidden />
+          <span class="file-drop-icon">⇧</span>
+          <span><b id="driveBulkFileTitle">Excel 파일 선택</b><small id="driveBulkFileSub">.xlsx / .xls · Drive 링크 등록 양식</small></span>
+        </label>
+        <button class="btn ghost template-btn" type="button" id="downloadDriveBulkTemplateBtn">양식 다운로드</button>
+      </div>
+
+      <div class="drive-bulk-summary">
+        <span>검증 결과</span><strong id="driveBulkSummary">0건</strong>
+      </div>
+
+      <div id="driveBulkPreviewEmpty" class="bulk-preview-empty">Excel을 선택하면 제품·Tool 매칭과 Drive 링크 형식을 먼저 확인합니다.</div>
+      <div id="driveBulkPreview" class="drive-bulk-preview" hidden></div>
+
+      <div class="bulk-note">
+        <b>등록 기준</b>
+        <span>현재 사용본이 Y이면 같은 Tool · 활용 구분의 기존 자료는 이전 버전으로 전환됩니다. 오류가 있는 행은 등록 대상에서 자동 제외됩니다.</span>
+      </div>
+
+      <div class="dialog-actions">
+        <span></span>
+        <button class="btn ghost" type="button" id="cancelDriveBulkBtn">취소</button>
+        <button class="btn primary" type="button" id="runDriveBulkBtn" disabled>선택한 링크 등록</button>
+      </div>
+    </div>
+  </dialog>
+
+
   <dialog id="materialDialog" class="material-dialog">
     <div class="detail-wrap">
       <div class="dialog-head">
@@ -255,6 +302,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js?v=20260918-3"></script>
+  <script src="drive-bulk-links.js?v=20260918-1"></script>
   <script src="performance-boost.js?v=20260908"></script>
 </body>
 </html>
