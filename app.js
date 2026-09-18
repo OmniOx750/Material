@@ -432,11 +432,6 @@ function fileRowHtml(f){
 }
 function fileExtensionIcon(name){const ext=String(name||"").split(".").pop().toUpperCase();return ["PDF","PPT","PPTX","XLS","XLSX","DOC","DOCX","MP4","MOV","ZIP"].includes(ext)?ext.slice(0,4):"FILE"}
 
-function setMaterialMode(mode){
-  materialState.mode=mode;document.querySelectorAll("[data-material-mode]").forEach(b=>b.classList.toggle("active",b.dataset.materialMode===mode));
-  $("#materialUploadField").hidden=mode!=="upload";$("#materialLinkField").hidden=mode!=="link";
-  $("#saveMaterialBtn").textContent=mode==="upload"?"Drive에 업로드":"Drive 링크 등록";
-}
 function refreshMaterialTargets(parent){
   const entry=currentScopeEntry(),fam=familyOf(entry),language=$("#materialLanguage").value||"전체";
   let target=parent;
@@ -456,18 +451,6 @@ function openMaterialDialog(parentId){
   $("#materialLanguage").onchange=()=>refreshMaterialTargets(parent);
   $("#materialDialog").showModal();
 }
-function readFileAsDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||""));r.onerror=()=>reject(r.error||new Error("FILE_READ_ERROR"));r.readAsDataURL(file)})}
-async function refreshMaterialAfterMutation(beforeCount,driveUrl=""){
-  const waits=[0,250,600,1200];
-  for(const wait of waits){
-    if(wait)await sleep(wait);
-    await loadData(false);
-    const matched=driveUrl&&state.files.some(f=>[f.driveUrl,f.viewUrl,f.downloadUrl].some(v=>String(v||"")===driveUrl));
-    if(state.files.length>beforeCount||matched)return true;
-  }
-  return false;
-}
-
 async function saveMaterial(){
   if(!state.connected)return toast("Google Sheets 연결 후 자료를 등록할 수 있습니다.");
   const toolId=$("#materialTarget").value;
@@ -479,23 +462,30 @@ async function saveMaterial(){
   if(!toolId)return toast("연결할 Tool을 확인해주세요.");
   if(!driveUrl)return toast("Google Drive 링크를 입력해주세요.");
   if(!language)return toast("국내 / 해외 / 공용 중 활용 구분을 선택해주세요.");
-  const btn=$("#saveMaterialBtn"),original=btn.textContent,beforeCount=state.files.length;
+
+  const btn=$("#saveMaterialBtn"),original=btn.textContent;
   try{
-    btn.disabled=true;btn.textContent="링크 저장 중...";
+    btn.disabled=true;btn.textContent="저장 중...";
     await apiPost("registerDriveFile",{file:{toolId,driveUrl,version,language,note,isCurrent}});
-    btn.textContent="저장 확인 중...";
-    const verified=await refreshMaterialAfterMutation(beforeCount,driveUrl);
-    if(!verified)throw new Error("등록은 요청됐지만 최신 목록 반영이 지연되고 있습니다. 잠시 후 새로고침해주세요.");
-    $("#materialDialog").close();toast("Drive 링크를 등록했습니다.");
-    if(materialState.parentId)openDetail(materialState.parentId);
-  }catch(err){console.error(err);toast(err.message||"자료 등록 중 오류가 발생했습니다.")}
-  finally{btn.disabled=false;btn.textContent=original}
+    $("#materialDialog").close();
+    toast("Drive 링크를 저장했습니다.");
+    setTimeout(()=>loadData(false),250);
+  }catch(err){
+    console.error(err);toast(err.message||"자료 등록 중 오류가 발생했습니다.");
+  }finally{
+    btn.disabled=false;btn.textContent=original;
+  }
 }
 async function deleteMaterial(fileId,parentId){
   const f=state.files.find(x=>String(x.id)===String(fileId));if(!f)return;
-  const message=f.source==="upload"?"이 자료를 삭제할까요? 웹앱에서 직접 올린 파일은 Google Drive 휴지통으로 이동됩니다.":"이 자료 연결을 해제할까요? Drive 원본 파일은 삭제하지 않습니다.";
-  if(!confirm(message))return;
-  try{await apiPost("deleteFile",{id:fileId});await loadData();toast(f.source==="upload"?"자료를 삭제했습니다.":"Drive 연결을 해제했습니다.");openDetail(parentId)}catch(err){console.error(err);toast("자료 삭제 중 오류가 발생했습니다.")}
+  if(!confirm("이 자료 연결을 해제할까요? Drive 원본 파일은 삭제하지 않습니다."))return;
+  try{
+    await apiPost("deleteFile",{id:fileId});
+    state.files=state.files.filter(x=>String(x.id)!==String(fileId));
+    toast("Drive 연결을 해제했습니다.");
+    openDetail(parentId);
+    setTimeout(()=>loadData(false),250);
+  }catch(err){console.error(err);toast("자료 삭제 중 오류가 발생했습니다.")}
 }
 
 function fillProductSelect(selected){
@@ -600,8 +590,17 @@ function formData(){
 async function saveItem(e){
   e.preventDefault();const item=formData();if(!item.product||!item.item||!item.category)return toast("제품, 자료 분류, Tool 항목을 입력해주세요.");
   try{
-    if(state.connected){await apiPost("save",{item});await loadData();toast("Google Sheets에 저장했습니다.");}
-    else{const idx=state.items.findIndex(x=>String(x.id)===String(item.id));if(idx>=0)state.items[idx]=item;else state.items.push(item);toast("샘플 모드에만 반영되었습니다. Sheets 연결이 필요합니다.");rebuildFilters();render();}
+    if(state.connected){
+      await apiPost("save",{item});
+      const idx=state.items.findIndex(x=>String(x.id)===String(item.id));
+      if(idx>=0)state.items[idx]=item;else state.items.push(item);
+      rebuildFilters();render();toast("저장했습니다.");
+      setTimeout(()=>loadData(false),250);
+    }else{
+      const idx=state.items.findIndex(x=>String(x.id)===String(item.id));
+      if(idx>=0)state.items[idx]=item;else state.items.push(item);
+      toast("샘플 모드에만 반영되었습니다. Sheets 연결이 필요합니다.");rebuildFilters();render();
+    }
     $("#itemDialog").close();if(state.product!=="전체"&&scopeDefaultProduct()!==item.product)selectDataProduct(item.product);
   }catch(err){console.error(err);toast("저장 중 오류가 발생했습니다.")}
 }
