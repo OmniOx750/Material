@@ -297,7 +297,13 @@ function categoryIcon(category){if(category.includes("제품 소개"))return"▤
 function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderFamilyProductNav();renderLanguageFilter();renderToolSections()}
 function renderLanguageFilter(){document.querySelectorAll("[data-file-language]").forEach(b=>b.classList.toggle("active",b.dataset.fileLanguage===state.fileLanguage))}
 function renderProductNav(){
-  const families=navEntries("family");
+  const seenFamilies=new Set();
+  const families=navEntries("family").filter(group=>{
+    const key=String(group.name||"").trim().toLowerCase().replace(/\s+/g," ");
+    if(!key||seenFamilies.has(key))return false;
+    seenFamilies.add(key);
+    return true;
+  });
   $("#productNav").innerHTML=families.map(group=>{
     const kids=childrenConfig(group.id);
     const active=state.product===group.id||kids.some(c=>state.product===c.id);
