@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260918-4" />
+  <link rel="stylesheet" href="style.css?v=20260918-5" />
   <link rel="stylesheet" href="mekics-glass-theme.css?v=20260908" />
   <link rel="stylesheet" href="performance-tweaks.css?v=20260908" />
 </head>
@@ -50,7 +50,7 @@
         </div>
       </header>
 
-      <section class="stats" id="stats"></section>
+      <section class="stats compact-stats" id="stats"></section>
 
       <section class="panel overview-panel">
         <div class="overview-copy">
@@ -59,9 +59,7 @@
             <h2 id="overviewTitle">전체 제품</h2>
             <p id="overviewDescription">제품을 선택하면 해당 제품의 영업 Tool만 볼 수 있습니다.</p>
           </div>
-          <div class="overview-rate" id="overviewRate"></div>
         </div>
-        <div class="product-progress" id="productProgress"></div>
       </section>
 
       <section id="familyProductNav" class="family-products-panel panel" hidden></section>
@@ -69,7 +67,6 @@
       <section class="toolbar-panel panel">
         <div class="toolbar">
           <div class="search-wrap"><span>⌕</span><input id="searchInput" placeholder="Tool명, 설명, 비고 검색" /></div>
-          <select id="statusFilter"><option value="">모든 상태</option><option>보유</option><option>미보유</option><option>확인중</option></select>
           <select id="categoryFilter"><option value="">모든 분류</option></select>
           <div class="language-filter" id="languageFilter" aria-label="자료 활용 구분">
             <button class="lang-filter active" type="button" data-file-language="전체">전체</button>
@@ -110,11 +107,8 @@
           </div>
         </div>
         <label>자료 분류<input id="categoryInput" list="categoryList" required placeholder="예: 제품 소개" /><datalist id="categoryList"></datalist></label>
-        <label>번호<input id="noInput" placeholder="예: 14 또는 1-1." /></label>
         <label class="span2">영업 Tool 항목<input id="itemInput" required placeholder="예: 제품 브로슈어" /></label>
         <label class="span2">설명<input id="descriptionInput" placeholder="자료의 용도나 설명" /></label>
-        <label>보유 여부<select id="statusInput" required><option>보유</option><option>미보유</option><option>확인중</option></select></label>
-        <label>최종 업데이트일<input id="dateInput" type="date" /></label>
         <label class="span2">비고<textarea id="noteInput" rows="3" placeholder="추가 확인사항이나 업데이트 메모"></textarea></label>
       </div>
       <div class="dialog-actions"><button class="btn danger" type="button" id="deleteBtn" hidden>삭제</button><span></span><button class="btn ghost" type="button" id="cancelBtn">취소</button><button class="btn primary" type="submit">저장</button></div>
@@ -301,7 +295,7 @@
   <div class="toast" id="toast"></div>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20260918-3"></script>
+  <script src="app.js?v=20260918-5"></script>
   <script src="drive-bulk-links.js?v=20260918-1"></script>
   <script src="performance-boost.js?v=20260908"></script>
 </body>
