@@ -359,19 +359,18 @@ function renderHeader(){
   $("#pageSubtitle").textContent=state.product==="전체"?"제품군과 제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.":"※ 등록된 자료 파일은 페이지에서 직접 수정할 수 없습니다. 수정본은 새 파일로 등록해주세요.";
 }
 function renderStats(){
-  const t=totals();
-  const cards=[["전체 Tool",t.total,"관리 중인 Tool 항목","▦"],["보유",t.owned,`보유율 ${t.rate}%`,"✓"],["미보유",t.missing,"제작·확보 필요","!"],["확인중",t.checking,"상태 확인 필요","?"]];
+  const toolCount=scopedTopTools().length;
+  const materialCount=state.files.length;
+  const cards=[["전체 Tool",toolCount,"현재 관리 중인 Tool","▦"],["등록 자료",materialCount,"Google Drive 연결 자료","↗"]];
   $("#stats").innerHTML=cards.map(c=>`<div class="stat"><div class="stat-top"><span class="stat-label">${c[0]}</span><span class="stat-icon">${c[3]}</span></div><div class="stat-value">${c[1]}</div><div class="stat-sub">${c[2]}</div></div>`).join("");
 }
 function renderOverview(){
-  const t=totals();const label=state.product==="전체"?"전체 제품":scopeLabel();
+  const label=state.product==="전체"?"전체 제품":scopeLabel();
   $("#overviewTitle").textContent=label;
   let desc="";
-  if(state.product==="전체") desc="제품군과 제품별 핵심 영업 Tool 현황입니다.";
-  else {const entry=currentScopeEntry();const fam=familyOf(entry);if(entry?.type==="family") desc=`${entry.name} 제품군의 영업 Tool을 한 번에 확인합니다.`;else if(entry?.type==="product"&&fam?.mode==="child") desc=`${scopeLabel()}에 연결된 세부 Tool과 자료입니다.`;else desc=`${label}의 핵심 영업 Tool ${t.total}개를 관리 중입니다.`;}
+  if(state.product==="전체") desc="제품군과 제품별 Sales Tool과 등록 자료를 확인합니다.";
+  else {const entry=currentScopeEntry();if(entry?.type==="family") desc=`${entry.name} 제품군의 Sales Tool을 확인합니다.`;else desc=`${label}의 Sales Tool과 등록 자료를 확인합니다.`;}
   $("#overviewDescription").textContent=desc;
-  $("#overviewRate").innerHTML=`<strong>${t.rate}%</strong><span>Tool 확보율</span>`;
-  $("#productProgress").innerHTML=`<div class="progress-track"><div class="progress-fill" style="width:${t.rate}%"></div></div><div class="progress-copy"><b>${t.owned}/${t.total}</b> 보유</div>`;
 }
 function renderToolSections(){
   const tools=filteredTools(); $("#resultCount").textContent=`${tools.length}개 Tool`; $("#emptyState").hidden=tools.length>0;
@@ -386,15 +385,12 @@ function renderToolSections(){
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();openEdit(b.dataset.edit)});
 }
 function toolCard(x){
-  const children=childrenForView(x);const preview=children.slice(0,3).map(c=>`<span class="variant-chip">${esc(c.item)}</span>`).join("")+(children.length>3?`<span class="variant-more">+${children.length-3}</span>`:"");
-  const update=x.updatedAt?`업데이트 ${fmtDate(x.updatedAt)}`:children.find(c=>c.updatedAt)?`세부자료 ${children.length}종`:"업데이트 기록 없음";
   const fileCount=fileCountForParent(x),lang=fileLanguageCounts(x);
   return `<article class="tool-card" data-detail="${esc(x.id)}">
-    <div class="tool-card-top"><span class="tool-symbol">${categoryIcon(x.category||"")}</span><div class="tool-status"><span class="badge ${statusClass(x.status)}">${esc(x.status)}</span></div></div>
+    <div class="tool-card-top"><span class="tool-symbol">${categoryIcon(x.category||"")}</span></div>
     <h3>${esc(x.item)}</h3><p class="tool-desc">${esc(x.description||"설명 없음")}</p>
-    ${children.length?`<div class="variant-preview">${preview}</div>`:""}
     <div class="language-counts"><span class="language-pill ko ${state.fileLanguage==="국내"?"active":""}">국내 ${lang.domestic}</span><span class="language-pill en ${state.fileLanguage==="해외"?"active":""}">해외 ${lang.overseas}</span><span class="language-pill other ${state.fileLanguage==="공용"?"active":""}">공용 ${lang.shared}</span></div>
-    <div class="tool-card-footer"><span class="tool-meta">${fileCount?`📎 ${fileCount}개 자료 · `:""}${children.length?`${children.length}개 세부자료 · `:""}${esc(update)}</span><div class="card-actions"><button class="text-btn" data-detail="${esc(x.id)}">자료 보기</button><button class="row-btn" data-edit="${esc(x.id)}" title="수정">⋯</button></div></div>
+    <div class="tool-card-footer"><span class="tool-meta">${fileCount?`📎 ${fileCount}개 자료`:"등록 자료 없음"}</span><div class="card-actions"><button class="text-btn" data-detail="${esc(x.id)}">자료 보기</button><button class="row-btn" data-edit="${esc(x.id)}" title="수정">⋯</button></div></div>
   </article>`;
 }
 function rebuildFilters(){
@@ -406,27 +402,30 @@ function rebuildFilters(){
 
 function openDetail(id){
   const wasOpen=$("#detailDialog").open;
-  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";const children=childrenForView(parent,state.detailLanguage);const allFiles=filesForParent(parent,true,"전체");const files=filesForParent(parent,true,state.detailLanguage);const langCounts={전체:allFiles.length,국내:filesForParent(parent,true,"국내").length,해외:filesForParent(parent,true,"해외").length,공용:filesForParent(parent,true,"공용").length};
-  $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"}`;$("#detailTitle").textContent=parent.item;
+  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;
+  if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";
+  const allFiles=filesForParent(parent,true,"전체");
+  const files=filesForParent(parent,true,state.detailLanguage);
+  const langCounts={전체:allFiles.length,국내:filesForParent(parent,true,"국내").length,해외:filesForParent(parent,true,"해외").length,공용:filesForParent(parent,true,"공용").length};
+  $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"}`;
+  $("#detailTitle").textContent=parent.item;
   $("#detailBody").innerHTML=`
-    <div class="detail-summary"><div><span class="badge ${statusClass(parent.status)}">${esc(parent.status)}</span><p>${esc(parent.description||"설명 없음")}</p><div class="detail-info"><span>No. ${esc(parent.no||"-")}</span><span>최종 업데이트 ${esc(fmtDate(parent.updatedAt))}</span></div>${parent.note?`<div class="detail-note">${esc(parent.note)}</div>`:""}</div></div>
-    ${children.length?`<div class="variant-list"><div class="variant-list-title">세부 Tool · ${children.length}종</div>${children.map(c=>{const market=hft750MarketForChild(c);return `<div class="variant-row"><div class="variant-name"><strong>${esc(c.item)}</strong><span>${market?`${esc(market)}용 · `:""}${esc(c.note||c.description||"세부 자료")}</span></div><span class="badge ${statusClass(c.status)}">${esc(c.status)}</span><span class="date-col tool-meta">📎 ${filesForToolId(c.id).length} · ${esc(fmtDate(c.updatedAt))}</span><button class="row-btn" data-detail-edit="${esc(c.id)}">⋯</button></div>`}).join("")}</div>`:""}
+    <div class="detail-summary"><div><p>${esc(parent.description||"설명 없음")}</p>${parent.note?`<div class="detail-note">${esc(parent.note)}</div>`:""}</div></div>
     <div class="material-section">
-      <div class="material-section-head"><div><b>등록 자료</b><span>국내 · 해외 · 공용 자료로 구분합니다. 전체 ${allFiles.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ 자료 등록</button></div>
+      <div class="material-section-head"><div><b>등록 자료</b><span>국내 · 해외 · 공용으로 구분합니다. 전체 ${allFiles.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ 자료 등록</button></div>
       <div class="material-language-tabs">${["전체","국내","해외","공용"].map(lang=>`<button type="button" class="material-language-tab ${state.detailLanguage===lang?"active":""}" data-detail-language="${lang}"><span>${lang}</span><b>${langCounts[lang]}</b></button>`).join("")}</div>
-      <div class="material-list">${files.length?files.map(fileRowHtml).join(""):`<div class="material-empty"><span>⌁</span><b>${esc(state.detailLanguage)} 자료가 없습니다.</b><small>자료 등록 시 활용 구분을 선택하면 국내/해외/공용으로 자동 분리됩니다.</small></div>`}</div>
+      <div class="material-list">${files.length?files.map(fileRowHtml).join(""):`<div class="material-empty"><span>⌁</span><b>${esc(state.detailLanguage)} 자료가 없습니다.</b><small>Drive 링크를 등록하면 여기에 표시됩니다.</small></div>`}</div>
     </div>
     <div class="detail-edit"><button class="btn ghost" id="editFromDetail">이 Tool 수정</button></div>`;
   $("#editFromDetail").onclick=()=>{$("#detailDialog").close();openEdit(parent.id)};
   $("#addMaterialFromDetail").onclick=()=>openMaterialDialog(parent.id);
-  document.querySelectorAll("[data-detail-edit]").forEach(b=>b.onclick=()=>{$("#detailDialog").close();openEdit(b.dataset.detailEdit)});
   document.querySelectorAll("[data-detail-language]").forEach(b=>b.onclick=()=>{state.detailLanguage=b.dataset.detailLanguage;openDetail(parent.id)});
   document.querySelectorAll("[data-file-delete]").forEach(b=>b.onclick=()=>deleteMaterial(b.dataset.fileDelete,parent.id));
   if(!wasOpen)$("#detailDialog").showModal();
 }
 function fileRowHtml(f){
   const current=f.isCurrent?'<span class="current-badge">현재본</span>':'';
-  const meta=[f.version,languageBucket(f.language),bytesLabel(f.size),fmtDate(f.uploadedAt)].filter(v=>v&&v!=="-").map(esc).join(" · ");
+  const meta=[f.version,languageBucket(f.language),bytesLabel(f.size)].filter(v=>v&&v!=="-").map(esc).join(" · ");
   const label=targetName(f.toolId);
   const href=f.downloadUrl||f.viewUrl||"#";
   return `<div class="material-row"><div class="file-icon">${fileExtensionIcon(f.fileName)}</div><div class="file-main"><div class="file-title"><strong>${esc(f.fileName)}</strong>${current}</div><span>${esc(label)}${meta?` · ${meta}`:""}</span>${f.note?`<small>${esc(f.note)}</small>`:""}</div><div class="file-actions"><a class="btn ghost compact file-open" href="${esc(href)}" target="_blank" rel="noopener">다운로드</a><button class="row-btn" data-file-delete="${esc(f.id)}" title="자료 삭제">×</button></div></div>`;
@@ -440,20 +439,19 @@ function setMaterialMode(mode){
 }
 function refreshMaterialTargets(parent){
   const entry=currentScopeEntry(),fam=familyOf(entry),language=$("#materialLanguage").value||"전체";
-  let targets=[];
+  let target=parent;
   if(entry?.type==="product"&&fam?.mode==="child"&&parent.product===fam.dataKey){
-    targets=childrenForView(parent,language);
-  }else{
-    targets=[parent,...childrenForView(parent,language)];
+    const candidates=childrenForView(parent,language);
+    target=candidates[0]||childrenOf(parent).find(c=>childProductMatch(c.item,entry.dataKey))||parent;
   }
-  $("#materialTarget").innerHTML=targets.length?targets.map(t=>`<option value="${esc(t.id)}">${t===parent?"공통 Tool · ":"제품 Tool · "}${esc(t.item)}</option>`).join(""):'<option value="">등록 가능한 제품 Tool이 없습니다.</option>';
-  $("#saveMaterialBtn").disabled=!targets.length;
+  $("#materialTarget").innerHTML=`<option value="${esc(target.id)}">${esc(parent.item)}</option>`;
+  $("#saveMaterialBtn").disabled=!target;
 }
 function openMaterialDialog(parentId){
   if($("#detailDialog").open)$("#detailDialog").close();
   const parent=state.items.find(x=>String(x.id)===String(parentId));if(!parent)return;
-  materialState.parentId=String(parent.id);setMaterialMode("upload");
-  $("#materialFile").value="";$("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value=["국내","해외","공용"].includes(state.fileLanguage)?state.fileLanguage:"국내";$("#materialNote").value="";$("#materialCurrent").checked=true;
+  materialState.parentId=String(parent.id);materialState.mode="link";
+  $("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value=["국내","해외","공용"].includes(state.fileLanguage)?state.fileLanguage:"국내";$("#materialNote").value="";$("#materialCurrent").checked=true;
   refreshMaterialTargets(parent);
   $("#materialLanguage").onchange=()=>refreshMaterialTargets(parent);
   $("#materialDialog").showModal();
@@ -472,27 +470,23 @@ async function refreshMaterialAfterMutation(beforeCount,driveUrl=""){
 
 async function saveMaterial(){
   if(!state.connected)return toast("Google Sheets 연결 후 자료를 등록할 수 있습니다.");
-  const toolId=$("#materialTarget").value;const version=$("#materialVersion").value.trim();const language=$("#materialLanguage").value;const note=$("#materialNote").value.trim();const isCurrent=$("#materialCurrent").checked;
-  if(!toolId)return toast("연결할 Tool을 선택해주세요.");if(!language)return toast("국내 / 해외 / 공용 중 활용 구분을 선택해주세요.");
-  const btn=$("#saveMaterialBtn");const original=btn.textContent;const beforeCount=state.files.length;
-  let driveUrl="";
+  const toolId=$("#materialTarget").value;
+  const version=$("#materialVersion").value.trim();
+  const language=$("#materialLanguage").value;
+  const note=$("#materialNote").value.trim();
+  const isCurrent=$("#materialCurrent").checked;
+  const driveUrl=$("#materialDriveUrl").value.trim();
+  if(!toolId)return toast("연결할 Tool을 확인해주세요.");
+  if(!driveUrl)return toast("Google Drive 링크를 입력해주세요.");
+  if(!language)return toast("국내 / 해외 / 공용 중 활용 구분을 선택해주세요.");
+  const btn=$("#saveMaterialBtn"),original=btn.textContent,beforeCount=state.files.length;
   try{
-    btn.disabled=true;
-    if(materialState.mode==="upload"){
-      const file=$("#materialFile").files?.[0];if(!file)throw new Error("파일을 선택해주세요.");
-      if(file.size>8*1024*1024)throw new Error("직접 업로드는 8MB 이하만 권장합니다. 큰 파일은 Drive 링크 등록을 사용해주세요.");
-      btn.textContent="파일 전송 중...";
-      const dataUrl=await readFileAsDataUrl(file);const base64=dataUrl.split(",")[1]||"";
-      await apiPost("uploadFile",{file:{toolId,fileName:file.name,mimeType:file.type||"application/octet-stream",base64,version,language,note,isCurrent}});
-    }else{
-      driveUrl=$("#materialDriveUrl").value.trim();if(!driveUrl)throw new Error("Google Drive 링크를 입력해주세요.");
-      btn.textContent="링크 저장 중...";
-      await apiPost("registerDriveFile",{file:{toolId,driveUrl,version,language,note,isCurrent}});
-    }
+    btn.disabled=true;btn.textContent="링크 저장 중...";
+    await apiPost("registerDriveFile",{file:{toolId,driveUrl,version,language,note,isCurrent}});
     btn.textContent="저장 확인 중...";
     const verified=await refreshMaterialAfterMutation(beforeCount,driveUrl);
     if(!verified)throw new Error("등록은 요청됐지만 최신 목록 반영이 지연되고 있습니다. 잠시 후 새로고침해주세요.");
-    $("#materialDialog").close();toast("Google Drive 자료를 등록했습니다.");
+    $("#materialDialog").close();toast("Drive 링크를 등록했습니다.");
     if(materialState.parentId)openDetail(materialState.parentId);
   }catch(err){console.error(err);toast(err.message||"자료 등록 중 오류가 발생했습니다.")}
   finally{btn.disabled=false;btn.textContent=original}
@@ -513,9 +507,12 @@ function toggleNewProduct(){
   $("#newProductWrap").hidden=!isNew;
   $("#newProductInput").required=isNew;
 }
-function openAdd(){resetForm();$("#dialogEyebrow").textContent="NEW SALES TOOL";$("#dialogTitle").textContent="Tool 추가";$("#deleteBtn").hidden=true;fillProductSelect();$("#statusInput").value="미보유";$("#itemDialog").showModal()}
+function openAdd(){resetForm();$("#dialogEyebrow").textContent="NEW SALES TOOL";$("#dialogTitle").textContent="Tool 추가";$("#deleteBtn").hidden=true;fillProductSelect();$("#itemDialog").showModal()}
 function openEdit(id){
-  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const inheritedCategory=x.category||(parentOf(x)?.category||"");resetForm();$("#dialogEyebrow").textContent="EDIT SALES TOOL";$("#dialogTitle").textContent=isChild(x)?"세부 자료 수정":"Tool 수정";$("#deleteBtn").hidden=false;$("#editId").value=x.id;fillProductSelect(x.product);$("#noInput").value=x.no||"";$("#categoryInput").value=inheritedCategory;$("#itemInput").value=x.item||"";$("#descriptionInput").value=x.description||"";$("#statusInput").value=x.status||"미보유";$("#dateInput").value=x.updatedAt&&x.updatedAt!=="-"?fmtDate(x.updatedAt):"";$("#noteInput").value=x.note||"";$("#itemDialog").showModal();
+  const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;
+  const parent=parentOf(x)||x;
+  const inheritedCategory=parent.category||"";
+  resetForm();$("#dialogEyebrow").textContent="EDIT SALES TOOL";$("#dialogTitle").textContent="Tool 수정";$("#deleteBtn").hidden=false;$("#editId").value=parent.id;fillProductSelect(parent.product);$("#categoryInput").value=inheritedCategory;$("#itemInput").value=parent.item||"";$("#descriptionInput").value=parent.description||"";$("#noteInput").value=parent.note||"";$("#itemDialog").showModal();
 }
 function resetForm(){$("#itemForm").reset();$("#editId").value="";$("#newProductWrap").hidden=true}
 
@@ -594,8 +591,11 @@ async function runBulkImport(){
   }catch(err){console.error(err);toast("Excel 일괄 등록 중 오류가 발생했습니다.");updateBulkButton()}
 }
 function formData(){
-  const id=$("#editId").value;const product=$("#productSelect").value==="__new__"?$("#newProductInput").value.trim():$("#productSelect").value;
-  return {id:id||crypto.randomUUID(),product,no:$("#noInput").value.trim(),category:$("#categoryInput").value.trim(),item:$("#itemInput").value.trim(),description:$("#descriptionInput").value.trim(),status:$("#statusInput").value,updatedAt:$("#dateInput").value,note:$("#noteInput").value.trim(),order:id?(state.items.find(x=>String(x.id)===String(id))?.order||state.items.length+1):state.items.length+1};
+  const id=$("#editId").value;
+  const existing=id?state.items.find(x=>String(x.id)===String(id)):null;
+  const product=$("#productSelect").value==="__new__"?$("#newProductInput").value.trim():$("#productSelect").value;
+  const nextNo=String(topTools().filter(x=>x.product===product).length+1);
+  return {id:id||crypto.randomUUID(),product,no:existing?.no||nextNo,category:$("#categoryInput").value.trim(),item:$("#itemInput").value.trim(),description:$("#descriptionInput").value.trim(),status:existing?.status||"보유",updatedAt:existing?.updatedAt||"",note:$("#noteInput").value.trim(),order:existing?.order||state.items.length+1};
 }
 async function saveItem(e){
   e.preventDefault();const item=formData();if(!item.product||!item.item||!item.category)return toast("제품, 자료 분류, Tool 항목을 입력해주세요.");
@@ -659,7 +659,7 @@ let toastTimer;function toast(msg){clearTimeout(toastTimer);$("#toast").textCont
 $("#addBtn").onclick=openAdd;$("#manageStructureBtn").onclick=openStructureManager;$("#bulkBtn").onclick=openBulkImport;$("#bulkFromNewBtn").onclick=openBulkImport;$("#refreshBtn").onclick=()=>loadData(true);$("#closeDialog").onclick=()=>$("#itemDialog").close();$("#cancelBtn").onclick=()=>$("#itemDialog").close();$("#closeDetail").onclick=()=>$("#detailDialog").close();$("#productSelect").onchange=toggleNewProduct;$("#itemForm").onsubmit=saveItem;$("#deleteBtn").onclick=deleteItem;
 $("#closeBulkDialog").onclick=()=>$("#bulkDialog").close();$("#cancelBulkBtn").onclick=()=>$("#bulkDialog").close();$("#excelFile").onchange=handleExcelFile;$("#runBulkBtn").onclick=runBulkImport;
 $("#closeStructureDialog").onclick=()=>$("#structureDialog").close();$("#addStructureProductBtn").onclick=addStructureProduct;$("#addStructureFamilyBtn").onclick=addStructureFamily;
-$("#closeMaterialDialog").onclick=()=>$("#materialDialog").close();$("#cancelMaterialBtn").onclick=()=>$("#materialDialog").close();$("#saveMaterialBtn").onclick=saveMaterial;document.querySelectorAll("[data-material-mode]").forEach(b=>b.onclick=()=>setMaterialMode(b.dataset.materialMode));
-$("#searchInput").oninput=e=>{state.search=e.target.value;renderToolSections()};$("#statusFilter").onchange=e=>{state.status=e.target.value;renderToolSections()};$("#categoryFilter").onchange=e=>{state.category=e.target.value;renderToolSections()};
+$("#closeMaterialDialog").onclick=()=>$("#materialDialog").close();$("#cancelMaterialBtn").onclick=()=>$("#materialDialog").close();$("#saveMaterialBtn").onclick=saveMaterial;
+$("#searchInput").oninput=e=>{state.search=e.target.value;renderToolSections()};$("#categoryFilter").onchange=e=>{state.category=e.target.value;renderToolSections()};
 document.querySelectorAll("[data-file-language]").forEach(b=>b.onclick=()=>{state.fileLanguage=b.dataset.fileLanguage;renderLanguageFilter();renderToolSections()});
 loadData();
