@@ -76,7 +76,7 @@ const DEFAULT_NAV_CONFIG=[
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:"전체",detailLanguage:"전체",connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV4";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV5";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -89,7 +89,7 @@ function jsonp(url,params={}){
   return new Promise((resolve,reject)=>{
     const cb=`__mekics_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script=document.createElement("script");
-    const timer=setTimeout(()=>finish(new Error("TIMEOUT")),6500);
+    const timer=setTimeout(()=>finish(new Error("TIMEOUT")),20000);
     function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
     function finish(err,data){cleanup();err?reject(err):resolve(data)}
     window[cb]=data=>finish(null,data);
@@ -102,19 +102,19 @@ function jsonp(url,params={}){
 
 async function apiList(){
   if(!API_CANDIDATES.length) throw new Error("API_NOT_CONFIGURED");
-  let lastErr;
-  for(const url of API_CANDIDATES){
-    try{
-      let result=await jsonp(url,{action:"bootstrap"});
-      // v3 Code.gs가 잠시 남아 있어도 Tool 목록은 계속 보이도록 호환 처리
-      if(!result||result.ok===false){
-        result=await jsonp(url,{action:"list"});
-      }
-      if(!result||result.ok===false) throw new Error(result?.message||"API_ERROR");
-      ACTIVE_API_URL=url; return result;
-    }catch(e){lastErr=e}
+  const requests=API_CANDIDATES.map(async url=>{
+    let result=await jsonp(url,{action:"bootstrap"});
+    if(!result||result.ok===false) result=await jsonp(url,{action:"list"});
+    if(!result||result.ok===false) throw new Error(result?.message||"API_ERROR");
+    return {url,result};
+  });
+  try{
+    const winner=await Promise.any(requests);
+    ACTIVE_API_URL=winner.url;
+    return winner.result;
+  }catch(err){
+    throw new Error("CONNECTION_FAILED");
   }
-  throw lastErr||new Error("CONNECTION_FAILED");
 }
 
 async function apiPost(action,payload={}){
@@ -149,7 +149,7 @@ function applyBootstrapResult(result){
 
 function readBootstrapCache(){
   try{
-    const raw=sessionStorage.getItem(BOOTSTRAP_CACHE_KEY);
+    const raw=localStorage.getItem(BOOTSTRAP_CACHE_KEY)||sessionStorage.getItem(BOOTSTRAP_CACHE_KEY);
     if(!raw)return null;
     const parsed=JSON.parse(raw);
     return parsed&&parsed.data?parsed:null;
@@ -157,9 +157,9 @@ function readBootstrapCache(){
 }
 
 function writeBootstrapCache(result){
-  try{
-    sessionStorage.setItem(BOOTSTRAP_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:result}));
-  }catch(e){}
+  const value=JSON.stringify({savedAt:Date.now(),data:result});
+  try{localStorage.setItem(BOOTSTRAP_CACHE_KEY,value)}catch(e){}
+  try{sessionStorage.setItem(BOOTSTRAP_CACHE_KEY,value)}catch(e){}
 }
 
 async function loadData(showMessage=false){
