@@ -488,3 +488,21 @@ dialog{width:min(650px,calc(100vw - 30px));border:0;border-radius:16px;padding:0
   height:42px;
   font-size:13px;
 }
+
+
+/* v12.2 · left-aligned sales market switch */
+.global-market-bar{
+  justify-content:flex-start;
+}
+.global-market-bar .market-switch-large{
+  width:auto;
+  min-width:260px;
+}
+.global-market-bar .market-btn{
+  min-width:124px;
+}
+@media(max-width:700px){
+  .global-market-bar{justify-content:flex-start}
+  .global-market-bar .market-switch-large{width:auto;min-width:0}
+  .global-market-bar .market-btn{min-width:112px}
+}
