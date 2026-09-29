@@ -471,3 +471,20 @@ dialog{width:min(650px,calc(100vw - 30px));border:0;border-radius:16px;padding:0
   .global-market-copy{display:none}
   .market-switch-large .market-btn{height:42px}
 }
+
+
+/* v12.1 · minimal market switch */
+.global-market-bar{
+  min-height:0;
+  padding:8px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.global-market-bar .market-switch-large{
+  width:min(420px,100%);
+}
+.global-market-bar .market-btn{
+  height:42px;
+  font-size:13px;
+}
