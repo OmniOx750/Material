@@ -28,9 +28,16 @@
     ensureFileIndex();
     const ids = fileScopeIds(parent, viewOnly, language);
     const result = [];
+    const seen = new Set();
     ids.forEach(id => {
       const list = fileMap.get(String(id));
-      if (list?.length) result.push(...list);
+      if (!list?.length) return;
+      list.forEach(file => {
+        const key = String(file.driveFileId || file.id);
+        if (seen.has(key)) return;
+        seen.add(key);
+        result.push(file);
+      });
     });
     result.sort((a,b) =>
       (Number(b.isCurrent) - Number(a.isCurrent)) || String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || ''))
