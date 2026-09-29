@@ -45,6 +45,41 @@ const SEED_DATA = [
   ["MV50","13","기타","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등","미보유","",""]
 ].map((r,i)=>({id:`seed-${i+1}`,product:r[0],no:r[1],category:r[2],item:r[3],description:r[4],status:r[5],updatedAt:r[6],note:r[7],order:i+1}));
 
+/* Offline/sample fallback mirrors every direct product so the UI never appears empty
+   when Apps Script authentication is delayed. */
+const FALLBACK_TOOL_TEMPLATE=[
+  ["1","제품소개","제품 카다로그","제품 라인업 및 주요 사양을 소개하는 자료"],
+  ["2","제품소개","제품 브로슈어","요약형 홍보물 (영업 방문·전시회용)"],
+  ["3","제품소개","제품 소개 PPT자료","영업 프레젠테이션용 슬라이드"],
+  ["4","사용/설치자료","사용자 매뉴얼","제품 사용법 안내서"],
+  ["5","사용/설치자료","퀵 매뉴얼","설치 및 셋업 가이드"],
+  ["6","사용/설치자료","트러블슈팅/FAQ","자주 묻는 질문 및 문제 해결 안내"],
+  ["7","인허가/제출 자료","임상적 근거자료 (Clinical Evidence)","임상 데이터 및 관련 논문·자료"],
+  ["9","영업지원자료","경쟁사 비교자료","경쟁 제품 대비 강점 비교 자료"],
+  ["10","영업지원자료","레퍼런스 병원 리스트","기존 설치·사용 병원 레퍼런스"],
+  ["11","기타","사용 후기 / 케이스 스터디","고객 사용 사례 자료"],
+  ["12","기타","제품 데모 영상","사용 시연 영상"],
+  ["13","기타","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등"]
+];
+const FALLBACK_PRODUCTS=["MTV1000","MV2000","MP10/12","MP800","MNC100","MH100","Cannula","Circuit"];
+FALLBACK_PRODUCTS.forEach((product,pIndex)=>{
+  FALLBACK_TOOL_TEMPLATE.forEach((t,tIndex)=>{
+    SEED_DATA.push({
+      id:`seed-fallback-${product.replace(/[^A-Za-z0-9]/g,"").toLowerCase()}-${t[0]}`,
+      product,
+      no:t[0],
+      category:t[1],
+      item:t[2],
+      description:t[3],
+      status:"미보유",
+      updatedAt:"",
+      note:"",
+      order:SEED_DATA.length+1
+    });
+  });
+});
+
+
 const RAW_API_URL=(window.APP_CONFIG?.API_URL||"").trim();
 const normalizeAppsScriptUrl=url=>url.replace(/\/a\/macros\/[^/]+\/s\//,"/macros/s/");
 const API_CANDIDATES=[normalizeAppsScriptUrl(RAW_API_URL),RAW_API_URL].filter((v,i,a)=>v&&a.indexOf(v)===i);
