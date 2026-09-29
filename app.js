@@ -157,7 +157,7 @@ try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"family-omniox",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV9";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV10";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -384,7 +384,18 @@ function fileScopeIds(parent,viewOnly=false,language="전체"){
   if(viewOnly&&entry?.type==="product"&&fam?.mode==="child"&&parent.product===fam.dataKey)return kids.map(c=>String(c.id));
   return [String(parent.id),...kids.map(c=>String(c.id))];
 }
-function filesForParent(parent,viewOnly=false,language="전체"){const ids=new Set(fileScopeIds(parent,viewOnly,language));const files=state.files.filter(f=>ids.has(String(f.toolId))).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
+function filesForParent(parent,viewOnly=false,language="전체"){
+  const ids=new Set(fileScopeIds(parent,viewOnly,language));
+  const seen=new Set();
+  const files=state.files.filter(f=>{
+    if(!ids.has(String(f.toolId)))return false;
+    const key=String(f.driveFileId||f.id);
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  }).sort((a,b)=>(Number(b.isCurrent)-Number(a.isCurrent))||String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));
+  return filterFilesByLanguage(files,language);
+}
 function fileCountForParent(parent){return filesForParent(parent,true,state.fileLanguage).length}
 function fileLanguageCounts(parent){const files=filesForParent(parent,true,"전체");return {total:files.length,domestic:files.filter(f=>languageBucket(f.language)==="국내").length,overseas:files.filter(f=>languageBucket(f.language)==="해외").length,shared:files.filter(f=>languageBucket(f.language)==="공용").length}}
 function bytesLabel(n){const v=Number(n)||0;if(!v)return"";if(v<1024)return`${v} B`;if(v<1024*1024)return`${(v/1024).toFixed(1)} KB`;return`${(v/1024/1024).toFixed(v>10*1024*1024?0:1)} MB`}
