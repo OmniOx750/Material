@@ -85,7 +85,7 @@ FALLBACK_OMNIOX_MODELS.forEach(model=>{
   });
 });
 
-const FALLBACK_PRODUCTS=["MTV1000","MV2000","MP10/12","MP800","MNC100","MH100","Cannula","Circuit"];
+const FALLBACK_PRODUCTS=["MTV1000","MV2000","MP10/12","MP110P","MNC100","MH100","Cannula","Circuit"];
 FALLBACK_PRODUCTS.forEach((product,pIndex)=>{
   FALLBACK_TOOL_TEMPLATE.forEach((t,tIndex)=>{
     SEED_DATA.push({
@@ -141,7 +141,7 @@ const DEFAULT_NAV_CONFIG=[
   {id:"product-mp1012",type:"product",parentId:"family-patient-monitor",name:"MP10/12",dataKey:"MP10/12",mode:"",order:1,active:true},
 
   {id:"family-pulse-oximeter",type:"family",parentId:"",name:"Pulse Oximeter",dataKey:"",mode:"direct",order:4,active:true},
-  {id:"product-mp800",type:"product",parentId:"family-pulse-oximeter",name:"MP800",dataKey:"MP800",mode:"",order:1,active:true},
+  {id:"product-mp800",type:"product",parentId:"family-pulse-oximeter",name:"MP110P",dataKey:"MP110P",mode:"",order:1,active:true},
 
   {id:"family-airway-management",type:"family",parentId:"",name:"Airway Management",dataKey:"",mode:"direct",order:5,active:true},
   {id:"product-mnc100",type:"product",parentId:"family-airway-management",name:"MNC100",dataKey:"MNC100",mode:"",order:1,active:true},
@@ -157,7 +157,7 @@ try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"family-omniox",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV8";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV9";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
