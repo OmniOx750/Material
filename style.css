@@ -401,3 +401,73 @@ dialog{width:min(650px,calc(100vw - 30px));border:0;border-radius:16px;padding:0
   .market-switch{width:100%}
   .market-btn{flex:1}
 }
+
+
+/* v12 · prominent market switch + standardized categories */
+.global-market-bar{
+  position:sticky;
+  top:10px;
+  z-index:35;
+  min-height:64px;
+  margin:-8px -4px 14px;
+  padding:10px 14px;
+  display:grid;
+  grid-template-columns:auto minmax(360px,520px) 1fr;
+  align-items:center;
+  gap:16px;
+  border:1px solid rgba(255,255,255,.76);
+  border-radius:20px;
+  background:rgba(255,255,255,.72);
+  box-shadow:0 16px 44px rgba(54,49,85,.08),inset 0 1px 0 rgba(255,255,255,.72);
+  backdrop-filter:blur(30px) saturate(1.25);
+  -webkit-backdrop-filter:blur(30px) saturate(1.25);
+}
+.global-market-copy span,.global-market-copy strong{display:block}
+.global-market-copy span{font-size:8px;letter-spacing:.15em;font-weight:850;color:#96a0b2}
+.global-market-copy strong{margin-top:2px;font-size:13px;color:#344157}
+.global-market-bar>p{margin:0;color:#8893a5;font-size:9px;line-height:1.5;text-align:right}
+.market-switch-large{
+  width:100%;
+  padding:5px;
+  border-radius:14px;
+  background:rgba(238,242,250,.72);
+  border:1px solid rgba(206,215,230,.58);
+}
+.market-switch-large .market-btn{
+  flex:1;
+  min-width:0;
+  height:40px;
+  font-size:12px;
+}
+.market-switch-large .market-btn span{
+  margin-right:5px;
+  font-size:8px;
+  letter-spacing:.08em;
+  opacity:.72;
+}
+.topbar{
+  position:static!important;
+  top:auto!important;
+}
+.category-name-row.fixed{
+  grid-template-columns:28px 1fr auto;
+  min-height:44px;
+}
+.category-name-row.fixed b{font-size:11px;color:#3e4b60}
+.category-name-row.fixed small{font-size:8px;color:#98a1af}
+@media(max-width:1000px){
+  .global-market-bar{grid-template-columns:auto 1fr}
+  .global-market-bar>p{display:none}
+}
+@media(max-width:700px){
+  .global-market-bar{
+    position:sticky;
+    top:6px;
+    grid-template-columns:1fr;
+    gap:8px;
+    padding:10px;
+    margin:0 0 12px;
+  }
+  .global-market-copy{display:none}
+  .market-switch-large .market-btn{height:42px}
+}
