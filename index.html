@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260928-topactions" />
+  <link rel="stylesheet" href="style.css?v=20260929-market-v1" />
   <link rel="stylesheet" href="mekics-glass-theme.css?v=20260908" />
   <link rel="stylesheet" href="performance-tweaks.css?v=20260908" />
 </head>
@@ -38,7 +38,13 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">STRATEGY & PLANNING · SALES ENABLEMENT</p>
-          <h1 id="pageTitle">영업 Tool 보유 현황</h1>
+          <div class="title-market-row">
+            <h1 id="pageTitle">영업 Tool 보유 현황</h1>
+            <div class="market-switch" id="marketSwitch" aria-label="국내 해외 자료 전환">
+              <button type="button" class="market-btn active" data-market="국내">국내</button>
+              <button type="button" class="market-btn" data-market="해외">해외</button>
+            </div>
+          </div>
           <p class="subtitle" id="pageSubtitle">제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.</p>
         </div>
         <div class="top-actions">
@@ -68,12 +74,6 @@
         <div class="toolbar">
           <div class="search-wrap"><span>⌕</span><input id="searchInput" placeholder="Tool명, 설명, 비고 검색" /></div>
           <select id="categoryFilter"><option value="">모든 분류</option></select>
-          <div class="language-filter" id="languageFilter" aria-label="자료 활용 구분">
-            <button class="lang-filter active" type="button" data-file-language="전체">전체</button>
-            <button class="lang-filter" type="button" data-file-language="국내">국내</button>
-            <button class="lang-filter" type="button" data-file-language="해외">해외</button>
-            <button class="lang-filter" type="button" data-file-language="공용">공용</button>
-          </div>
           <span class="result-count" id="resultCount"></span>
         </div>
       </section>
@@ -169,9 +169,11 @@
         <div class="bulk-guide-icon">D</div>
         <div>
           <b>파일은 Google Drive에 먼저 올리고, 링크와 자료 정보만 Excel로 한 번에 등록합니다.</b>
-          <p>제품 · Tool · Drive 링크 · 활용 구분을 기준으로 기존 Sales Tool에 자동 매칭합니다. 등록 전에 오류 행을 미리 확인할 수 있습니다.</p>
+          <p>제품 · Tool · Drive 링크를 기준으로 기존 Sales Tool에 자동 매칭합니다. 현재 선택한 국내/해외 영역에 일괄 등록됩니다.</p>
         </div>
       </div>
+
+      <div class="bulk-market-banner">현재 <strong id="driveBulkMarketLabel">국내</strong> 자료로 등록합니다.</div>
 
       <div class="bulk-actions-top">
         <label class="file-drop" for="driveBulkExcelFile">
@@ -191,7 +193,7 @@
 
       <div class="bulk-note">
         <b>등록 기준</b>
-        <span>현재 사용본이 Y이면 같은 Tool · 활용 구분의 기존 자료는 이전 버전으로 전환됩니다. 오류가 있는 행은 등록 대상에서 자동 제외됩니다.</span>
+        <span>현재 사용본이 Y이면 같은 Tool의 같은 국내/해외 영역 기존 자료는 이전 버전으로 전환됩니다. 오류가 있는 행은 자동 제외됩니다.</span>
       </div>
 
       <div class="dialog-actions">
@@ -219,14 +221,18 @@
         </label>
 
         <label>버전<input id="materialVersion" placeholder="예: v2.1" /></label>
-        <label>활용 구분<select id="materialLanguage" required><option value="국내">국내</option><option value="해외">해외</option><option value="공용">공용 (국내·해외)</option></select></label>
+        <div class="material-market-context">
+          <span>등록 영역</span>
+          <strong id="materialMarketLabel">국내</strong>
+          <small>상단 국내/해외 선택에 따라 자동 지정됩니다.</small>
+        </div>
         <label class="span2">비고<input id="materialNote" placeholder="예: 2026 ERS 배포본 / 유럽용" /></label>
         <label class="current-check span2"><input id="materialCurrent" type="checkbox" checked /><span><b>현재 사용본으로 등록</b><small>같은 Tool·활용 구분의 기존 자료는 이전 버전으로 표시됩니다.</small></span></label>
       </div>
 
       <div class="material-help">
         <b>등록 방식</b>
-        <span>파일은 Google Drive에서 관리하고, 이 페이지에는 링크와 활용 구분만 저장합니다.</span>
+        <span>파일은 Google Drive에서 관리하고, 현재 선택한 국내/해외 영역에 링크를 저장합니다.</span>
       </div>
 
       <div class="dialog-actions">
@@ -285,8 +291,8 @@
   <div class="toast" id="toast"></div>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20260928-connectionfix"></script>
-  <script src="drive-bulk-links.js?v=20260918-3"></script>
+  <script src="app.js?v=20260929-market-v1"></script>
+  <script src="drive-bulk-links.js?v=20260929-market-v1"></script>
   <script src="performance-boost.js?v=20260908"></script>
 </body>
 </html>
