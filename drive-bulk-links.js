@@ -87,7 +87,7 @@
     var tool=val(cell(row,["Tool","영업 Tool","영업 Tool 항목","Tool명"]));
     var displayName=val(cell(row,["자료명","File Name","Filename","파일명"]));
     var driveUrl=val(cell(row,["Drive 링크","Drive URL","DriveURL","링크","URL"]));
-    var language=normalizeLanguage(cell(row,["활용 구분","활용구분","Language","구분"]));
+    var language=state.fileLanguage;
     var version=val(cell(row,["버전","Version"]));
     var current=normalizeCurrent(cell(row,["현재 사용본","현재사용본","Current","현재"]));
     var note=val(cell(row,["비고","Note","메모"]));
@@ -96,7 +96,7 @@
     else if(!tool) error="Tool을 입력해주세요.";
     else if(!driveUrl) error="Drive 링크를 입력해주세요.";
     else if(!isDriveUrl(driveUrl)) error="Google Drive/Docs 링크가 아닙니다.";
-    else if(!language) error="활용 구분은 국내/해외/공용 중 하나여야 합니다.";
+    else if(["국내","해외"].indexOf(language)<0) error="상단에서 국내 또는 해외를 선택해주세요.";
 
     var resolved={};
     if(!error){
@@ -127,6 +127,7 @@
   function open(){
     if(typeof XLSX==="undefined") return toast("Excel 모듈을 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
     reset();
+    var marketLabel=$("#driveBulkMarketLabel");if(marketLabel)marketLabel.textContent=state.fileLanguage;
     $("#driveBulkDialog").showModal();
   }
 
@@ -145,7 +146,7 @@
     $("#driveBulkSummary").textContent=rows.length ? valid+"건 등록 가능"+(invalid?" · "+invalid+"건 확인 필요":"") : "0건";
     $("#driveBulkPreview").innerHTML=rows.map(function(r,i){
       var title=r.label || (r.product+" › "+r.tool);
-      var meta=[r.language,r.version,r.displayName].filter(Boolean).join(" · ") || "Drive 링크";
+      var meta=[r.version,r.displayName].filter(Boolean).join(" · ") || "Drive 링크";
       var status=r.valid ? (r.current?"현재 사용본":"이전/참고본") : r.error;
       return '<label class="drive-bulk-row '+(r.valid?'':'invalid')+'">'+
         '<input type="checkbox" data-drive-bulk-row="'+i+'" '+(r.valid?'checked':'disabled')+'>'+
@@ -191,17 +192,17 @@
 
   function downloadTemplate(){
     if(typeof XLSX==="undefined") return toast("Excel 모듈을 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
-    var headers=["제품","Tool","자료명","Drive 링크","활용 구분","버전","현재 사용본","비고"];
+    var headers=["제품","Tool","자료명","Drive 링크","버전","현재 사용본","비고"];
     var sample=[
-      ["MV50","제품 카다로그","MV50 Catalog EN","https://drive.google.com/file/d/FILE_ID/view","해외","v2.0","Y","CE MDR 반영본"],
-      ["HFT750","제품 카다로그","HFT750 Catalog KR","https://drive.google.com/file/d/FILE_ID/view","국내","v1.0","Y","국내 영업용"]
+      ["MV50","제품 카다로그","MV50 Catalog","https://drive.google.com/file/d/FILE_ID/view","v2.0","Y","현재 선택한 영역에 등록"],
+      ["HFT750","제품 카다로그","HFT750 Catalog","https://drive.google.com/file/d/FILE_ID/view","v1.0","Y","현재 선택한 영역에 등록"]
     ];
     var guide=[
       ["항목","입력 방법"],
       ["제품","페이지의 제품명과 동일하게 입력: MV50, MP10/12, HFT750 등"],
       ["Tool","페이지의 Sales Tool명과 동일하게 입력"],
       ["Drive 링크","drive.google.com 또는 docs.google.com 공유 링크"],
-      ["활용 구분","국내 / 해외 / 공용"],
+      ["국내/해외","Excel에는 입력하지 않습니다. 상단에서 선택한 영역으로 일괄 등록됩니다."],
       ["버전","선택 입력"],
       ["현재 사용본","Y 또는 N, 비워두면 Y"],
       ["비고","선택 입력"]
@@ -221,7 +222,7 @@
     });
     var wb=XLSX.utils.book_new();
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(sample));
-    ws["!cols"]=[{wch:15},{wch:24},{wch:28},{wch:55},{wch:12},{wch:12},{wch:14},{wch:30}];
+    ws["!cols"]=[{wch:15},{wch:24},{wch:28},{wch:55},{wch:12},{wch:14},{wch:30}];
     XLSX.utils.book_append_sheet(wb,ws,"Drive 링크 등록");
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(guide),"작성 안내");
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(list),"제품-Tool 목록");
@@ -233,7 +234,7 @@
     var selected=checked.map(function(x){return bulkDriveState.rows[Number(x.dataset.driveBulkRow)];}).filter(function(r){return r && r.valid;});
     if(!selected.length) return;
     if(!state.connected) return toast("Google Sheets 연결 후 Drive 링크를 등록할 수 있습니다.");
-    if(!confirm(selected.length+"개 Drive 링크를 일괄 등록할까요?\n현재 사용본(Y)은 같은 Tool·활용 구분의 기존 자료를 이전 버전으로 표시합니다.")) return;
+    if(!confirm(state.fileLanguage+" 자료로 "+selected.length+"개 Drive 링크를 일괄 등록할까요?\n현재 사용본(Y)은 같은 Tool의 기존 "+state.fileLanguage+" 자료를 이전 버전으로 표시합니다.")) return;
 
     var btn=$("#runDriveBulkBtn");
     var completed=0;
