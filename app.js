@@ -1,54 +1,73 @@
 const SEED_DATA = [
-  ["OmniOx","1","제품 소개","제품 카다로그","제품 라인업 및 주요 사양을 소개하는 자료","보유","",""],
+  ["OmniOx","1","제품소개","제품 카다로그","제품 라인업 및 주요 사양을 소개하는 자료","보유","",""],
   ["OmniOx","1-1.","","OmniOx","","보유","2026-04-09",""],
   ["OmniOx","1-2.","","HFT700","","보유","2026-04-09",""],
   ["OmniOx","1-3.","","HFT750A","","보유","2026-04-14",""],
   ["OmniOx","1-4.","","HFT750B","","보유","2026-04-14",""],
   ["OmniOx","1-5.","","HFT750S","","보유","2026-04-14",""],
   ["OmniOx","1-6.","","HFT751","","보유","2026-04-14","이미지 저작권 재 확인"],
-  ["OmniOx","2","제품 소개","제품 브로슈어","요약형 홍보물 (영업 방문·전시회용)","보유","",""],
+  ["OmniOx","2","제품소개","제품 브로슈어","요약형 홍보물 (영업 방문·전시회용)","보유","",""],
   ["OmniOx","2-1.","","OmniOx","","보유","",""],
   ["OmniOx","2-2.","","Bi-Flow","","보유","",""],
   ["OmniOx","2-3.","","TSF","","보유","",""],
-  ["OmniOx","3","제품 소개","제품 소개 PPT자료","영업 프레젠테이션용 슬라이드","보유","2026-05-13","디자인 및 내용 재검토"],
-  ["OmniOx","4","사용/설치 자료","사용자 매뉴얼","제품 사용법 안내서","보유","",""],
+  ["OmniOx","3","제품소개","제품 소개 PPT자료","영업 프레젠테이션용 슬라이드","보유","2026-05-13","디자인 및 내용 재검토"],
+  ["OmniOx","4","사용/설치자료","사용자 매뉴얼","제품 사용법 안내서","보유","",""],
   ["OmniOx","4-1.","","HFT700","","보유","2026-04-09",""],
   ["OmniOx","4-2.","","HFT750A","","보유","2026-04-14",""],
   ["OmniOx","4-3.","","HFT750B","","보유","2026-04-14",""],
   ["OmniOx","4-4.","","HFT750S","","보유","2026-04-14",""],
   ["OmniOx","4-5.","","HFT751","","보유","2026-04-14",""],
-  ["OmniOx","5","사용/설치 자료","퀵 매뉴얼","설치 및 셋업 가이드","보유","",""],
+  ["OmniOx","5","사용/설치자료","퀵 매뉴얼","설치 및 셋업 가이드","보유","",""],
   ["OmniOx","5-1.","","HFT700","","보유","2026-04-09",""],
   ["OmniOx","5-2.","","HFT750A","","보유","2026-04-14",""],
   ["OmniOx","5-3.","","HFT750B","","보유","2026-04-14",""],
   ["OmniOx","5-4.","","HFT750S","","보유","2026-04-14",""],
   ["OmniOx","5-5.","","HFT751","","보유","2026-04-14",""],
-  ["OmniOx","6","사용/설치 자료","트러블슈팅/FAQ","자주 묻는 질문 및 문제 해결 안내","보유","",""],
+  ["OmniOx","6","사용/설치자료","트러블슈팅/FAQ","자주 묻는 질문 및 문제 해결 안내","보유","",""],
   ["OmniOx","7","인허가/제출 자료","인증서 (ISO13485·CE·FDA 등)","제품 인증 및 허가 관련 서류","보유","",""],
   ["OmniOx","8","인허가/제출 자료","임상적 근거자료 (Clinical Evidence)","임상 데이터 및 관련 논문·자료","확인중","",""],
-  ["OmniOx","9","영업지원 자료","경쟁사 비교자료","경쟁 제품 대비 강점 비교 자료","미보유","","업데이트본 없음"],
-  ["OmniOx","10","영업지원 자료","레퍼런스 병원 리스트","기존 설치·사용 병원 레퍼런스","미보유","","업데이트본 없음"],
-  ["OmniOx","11","마케팅/데모 자료","사용 후기 / 케이스 스터디","고객 사용 사례 자료","미보유","","업데이트본 없음"],
-  ["OmniOx","12","마케팅/데모 자료","제품 데모 영상","사용 시연 영상","미보유","","일부 있으나 전체영상 없음"],
-  ["OmniOx","13","마케팅/데모 자료","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등","보유","",""],
-  ["MV50","1","제품 소개","제품 카다로그","제품 라인업 및 주요 사양을 소개하는 자료","보유","",""],
-  ["MV50","2","제품 소개","제품 브로슈어","요약형 홍보물 (영업 방문·전시회용)","미보유","",""],
-  ["MV50","3","제품 소개","제품 소개 PPT자료","영업 프레젠테이션용 슬라이드","미보유","",""],
-  ["MV50","4","사용/설치 자료","사용자 매뉴얼","제품 사용법 안내서","보유","",""],
-  ["MV50","5","사용/설치 자료","퀵 매뉴얼","설치 및 셋업 가이드","보유","",""],
-  ["MV50","6","사용/설치 자료","트러블슈팅/FAQ","자주 묻는 질문 및 문제 해결 안내","미보유","",""],
+  ["OmniOx","9","영업지원자료","경쟁사 비교자료","경쟁 제품 대비 강점 비교 자료","미보유","","업데이트본 없음"],
+  ["OmniOx","10","영업지원자료","레퍼런스 병원 리스트","기존 설치·사용 병원 레퍼런스","미보유","","업데이트본 없음"],
+  ["OmniOx","11","기타","사용 후기 / 케이스 스터디","고객 사용 사례 자료","미보유","","업데이트본 없음"],
+  ["OmniOx","12","기타","제품 데모 영상","사용 시연 영상","미보유","","일부 있으나 전체영상 없음"],
+  ["OmniOx","13","기타","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등","보유","",""],
+  ["MV50","1","제품소개","제품 카다로그","제품 라인업 및 주요 사양을 소개하는 자료","보유","",""],
+  ["MV50","2","제품소개","제품 브로슈어","요약형 홍보물 (영업 방문·전시회용)","미보유","",""],
+  ["MV50","3","제품소개","제품 소개 PPT자료","영업 프레젠테이션용 슬라이드","미보유","",""],
+  ["MV50","4","사용/설치자료","사용자 매뉴얼","제품 사용법 안내서","보유","",""],
+  ["MV50","5","사용/설치자료","퀵 매뉴얼","설치 및 셋업 가이드","보유","",""],
+  ["MV50","6","사용/설치자료","트러블슈팅/FAQ","자주 묻는 질문 및 문제 해결 안내","미보유","",""],
   ["MV50","7","인허가/제출 자료","임상적 근거자료 (Clinical Evidence)","임상 데이터 및 관련 논문·자료","미보유","",""],
-  ["MV50","9","영업지원 자료","경쟁사 비교자료","경쟁 제품 대비 강점 비교 자료","확인중","",""],
-  ["MV50","10","영업지원 자료","레퍼런스 병원 리스트","기존 설치·사용 병원 레퍼런스","미보유","",""],
-  ["MV50","11","마케팅/데모 자료","사용 후기 / 케이스 스터디","고객 사용 사례 자료","미보유","",""],
-  ["MV50","12","마케팅/데모 자료","제품 데모 영상","사용 시연 영상","미보유","",""],
-  ["MV50","13","마케팅/데모 자료","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등","미보유","",""]
+  ["MV50","9","영업지원자료","경쟁사 비교자료","경쟁 제품 대비 강점 비교 자료","확인중","",""],
+  ["MV50","10","영업지원자료","레퍼런스 병원 리스트","기존 설치·사용 병원 레퍼런스","미보유","",""],
+  ["MV50","11","기타","사용 후기 / 케이스 스터디","고객 사용 사례 자료","미보유","",""],
+  ["MV50","12","기타","제품 데모 영상","사용 시연 영상","미보유","",""],
+  ["MV50","13","기타","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등","미보유","",""]
 ].map((r,i)=>({id:`seed-${i+1}`,product:r[0],no:r[1],category:r[2],item:r[3],description:r[4],status:r[5],updatedAt:r[6],note:r[7],order:i+1}));
 
 const RAW_API_URL=(window.APP_CONFIG?.API_URL||"").trim();
 const normalizeAppsScriptUrl=url=>url.replace(/\/a\/macros\/[^/]+\/s\//,"/macros/s/");
 const API_CANDIDATES=[normalizeAppsScriptUrl(RAW_API_URL),RAW_API_URL].filter((v,i,a)=>v&&a.indexOf(v)===i);
 let ACTIVE_API_URL=API_CANDIDATES[0]||"";
+const STANDARD_CATEGORIES=["제품소개","사용/설치자료","인허가/제출 자료","영업지원자료","기타"];
+function normalizeCategoryName(value){
+  const v=String(value||"").trim();
+  const map={
+    "제품소개":"제품소개",
+    "제품소개":"제품소개",
+    "사용/설치자료":"사용/설치자료",
+    "사용/설치자료":"사용/설치자료",
+    "인허가/제출 자료":"인허가/제출 자료",
+    "인허가/제출자료":"인허가/제출 자료",
+    "영업지원자료":"영업지원자료",
+    "영업지원자료":"영업지원자료",
+    "기타":"기타",
+    "마케팅/데모자료":"기타",
+    "기타":"기타"
+  };
+  return map[v]||"기타";
+}
+
 const DEFAULT_NAV_CONFIG=[
   {id:"family-omniox",type:"family",parentId:"",name:"OmniOx",dataKey:"OmniOx",mode:"child",order:1,active:true},
   {id:"product-hft700",type:"product",parentId:"family-omniox",name:"HFT700",dataKey:"HFT700",mode:"",order:1,active:true},
@@ -133,6 +152,7 @@ function applyBootstrapResult(result){
   state.items=(result.items||[]).map((x,i)=>({
     ...x,
     product:["MP10","MP12","MP10/12"].includes(String(x.product||""))?"MP10/12":x.product,
+    category:isChild(x)?"":normalizeCategoryName(x.category),
     id:String(x.id),
     order:Number(x.order)||i+1
   }));
@@ -223,7 +243,7 @@ function dataProductLabel(key){
 }
 function compareNo(a,b){return String(a.no||"").localeCompare(String(b.no||""),"ko",{numeric:true,sensitivity:"base"})}
 function topTools(items=state.items){return items.filter(x=>!isChild(x)).sort((a,b)=>String(a.product||"").localeCompare(String(b.product||""),"ko")||compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
-function categories(){return [...new Set(topTools().map(x=>x.category).filter(Boolean))]}
+function categories(){return [...STANDARD_CATEGORIES]}
 function childrenOf(parent){const base=String(parent.no||"").replace(/\.$/,"");return state.items.filter(x=>x.product===parent.product&&isChild(x)&&baseNo(x)===base).sort((a,b)=>compareNo(a,b)||(Number(a.order)||9999)-(Number(b.order)||9999))}
 function parentOf(item){if(!isChild(item)) return item;return state.items.find(x=>x.product===item.product&&!isChild(x)&&String(x.no||"").replace(/\.$/,"")===baseNo(item))||null}
 function normalizeLanguage(value){const v=String(value||"").trim();return v||"공용"}
@@ -296,7 +316,7 @@ function filteredTools(){
   return scopedTopTools().filter(x=>{const children=childrenForView(x);const text=[x.product,x.category,x.item,x.description,x.note,...children.flatMap(c=>[c.item,c.description,c.note])].join(" ").toLowerCase();return (!state.status||x.status===state.status)&&(!state.category||x.category===state.category)&&(!q||text.includes(q))});
 }
 function totals(items=scopedTopTools()){const total=items.length,owned=items.filter(x=>x.status==="보유").length,missing=items.filter(x=>x.status==="미보유").length,checking=items.filter(x=>x.status==="확인중").length;return {total,owned,missing,checking,rate:total?Math.round(owned/total*100):0}}
-function categoryIcon(category){if(category.includes("제품 소개"))return"▤";if(category.includes("사용"))return"◫";if(category.includes("인허가"))return"✓";if(category.includes("영업지원"))return"↗";if(category.includes("마케팅"))return"◇";return"□"}
+function categoryIcon(category){if(category.includes("제품소개"))return"▤";if(category.includes("사용"))return"◫";if(category.includes("인허가"))return"✓";if(category.includes("영업지원"))return"↗";if(category.includes("마케팅"))return"◇";return"□"}
 
 function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderFamilyProductNav();renderMarketSwitch();renderToolSections()}
 function renderMarketSwitch(){
@@ -392,9 +412,10 @@ function renderOverview(){
 }
 function renderToolSections(){
   const tools=filteredTools(); $("#resultCount").textContent=`${tools.length}개 Tool`; $("#emptyState").hidden=tools.length>0;
-  const grouped=new Map(); tools.forEach(x=>{const k=x.category||"기타";if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(x)});
+  const grouped=new Map(STANDARD_CATEGORIES.map(c=>[c,[]]));
+  tools.forEach(x=>{const k=normalizeCategoryName(x.category);grouped.get(k).push(x)});
   const label=scopeLabel();
-  $("#toolSections").innerHTML=[...grouped.entries()].map(([category,items])=>`
+  $("#toolSections").innerHTML=STANDARD_CATEGORIES.map(category=>[category,grouped.get(category)]).filter(([,items])=>items.length).map(([category,items])=>`
     <section class="tool-section">
       <div class="tool-section-head"><div><h2>${esc(category)}</h2><p>${esc(state.product==="전체"?"제품군별 해당 Tool을 카드로 확인합니다.":`${label} · ${category}`)}</p></div><span class="section-count">${items.length}개</span></div>
       <div class="tool-grid">${items.map(toolCard).join("")}</div>
@@ -411,10 +432,10 @@ function toolCard(x){
   </article>`;
 }
 function rebuildFilters(){
-  const allowed=state.product==="전체"?categories():[...new Set(scopedTopTools().map(x=>x.category).filter(Boolean))];
-  const current=state.category; $("#categoryFilter").innerHTML='<option value="">모든 분류</option>'+allowed.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  const allowed=[...STANDARD_CATEGORIES];
+  const current=state.category;
+  $("#categoryFilter").innerHTML='<option value="">모든 분류</option>'+allowed.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
   if(allowed.includes(current))$("#categoryFilter").value=current; else state.category="";
-  $("#categoryList").innerHTML=categories().map(x=>`<option value="${esc(x)}">`).join("");
 }
 
 function openDetail(id){
@@ -548,8 +569,8 @@ function parseChecklistSheet(sheetName,ws){
   const product=normalizeProductFromSheet(sheetName);const items=[];const warnings=[];
   rows.slice(headerIndex+1).forEach((r,offset)=>{
     const item=excelCell(r[ix.item]);const no=excelCell(r[ix.no]);if(!item||!no)return;
-    const child=no.includes("-");const category=excelCell(r[ix.category]);
-    if(!child&&!category){warnings.push(`${headerIndex+2+offset}행: 구분이 없어 제외됨`);return;}
+    const child=no.includes("-");const rawCategory=excelCell(r[ix.category]);const category=normalizeCategoryName(rawCategory);
+    if(!child&&!rawCategory){warnings.push(`${headerIndex+2+offset}행: 구분이 없어 제외됨`);return;}
     let status=excelCell(r[ix.status]);if(!["보유","미보유","확인중"].includes(status))status="미보유";
     items.push({product,no,category:child?"":category,item,description:excelCell(r[ix.description]),status,updatedAt:normalizeExcelDate(r[ix.updatedAt]),note:excelCell(r[ix.note]),order:offset+1});
   });
@@ -598,7 +619,7 @@ function formData(){
   const existing=id?state.items.find(x=>String(x.id)===String(id)):null;
   const product=$("#productSelect").value==="__new__"?$("#newProductInput").value.trim():$("#productSelect").value;
   const nextNo=String(topTools().filter(x=>x.product===product).length+1);
-  return {id:id||crypto.randomUUID(),product,no:existing?.no||nextNo,category:$("#categoryInput").value.trim(),item:$("#itemInput").value.trim(),description:$("#descriptionInput").value.trim(),status:existing?.status||"보유",updatedAt:existing?.updatedAt||"",note:$("#noteInput").value.trim(),order:existing?.order||state.items.length+1};
+  return {id:id||crypto.randomUUID(),product,no:existing?.no||nextNo,category:normalizeCategoryName($("#categoryInput").value),item:$("#itemInput").value.trim(),description:$("#descriptionInput").value.trim(),status:existing?.status||"보유",updatedAt:existing?.updatedAt||"",note:$("#noteInput").value.trim(),order:existing?.order||state.items.length+1};
 }
 async function saveItem(e){
   e.preventDefault();const item=formData();if(!item.product||!item.item||!item.category)return toast("제품, 자료 분류, Tool 항목을 입력해주세요.");
@@ -638,9 +659,7 @@ function renderStructureManager(){
     </div>`;
   }).join("");
   document.querySelectorAll("[data-save-nav-name]").forEach(b=>b.onclick=()=>saveNavDisplayName(b.dataset.saveNavName));
-  const cats=categories();
-  $("#categoryNameList").innerHTML=cats.length?cats.map((c,i)=>`<div class="category-name-row"><span>${String(i+1).padStart(2,"0")}</span><input value="${esc(c)}" data-category-old="${esc(c)}"><button class="mini-save" type="button" data-save-category="${esc(c)}">저장</button></div>`).join(""):'<div class="structure-none">등록된 Tool 분류가 없습니다.</div>';
-  document.querySelectorAll("[data-save-category]").forEach(b=>b.onclick=()=>renameCategoryFromManager(b.dataset.saveCategory,b));
+  $("#categoryNameList").innerHTML=STANDARD_CATEGORIES.map((c,i)=>`<div class="category-name-row fixed"><span>${String(i+1).padStart(2,"0")}</span><b>${esc(c)}</b><small>전체 제품 공통</small></div>`).join("");
 }
 async function saveNavDisplayName(id){
   const entry=navById(id),input=document.querySelector(`[data-nav-name="${CSS.escape(String(id))}"]`);if(!entry||!input)return;
