@@ -510,6 +510,16 @@ function renderOverview(){
   $("#overviewDescription").textContent=desc;
 }
 function renderToolSections(){
+  const entry=currentScopeEntry();
+  const toolbar=document.querySelector(".toolbar-panel");
+  if(entry?.type==="family"){
+    if(toolbar)toolbar.hidden=true;
+    $("#toolSections").innerHTML="";
+    $("#emptyState").hidden=true;
+    $("#resultCount").textContent="";
+    return;
+  }
+  if(toolbar)toolbar.hidden=false;
   const tools=filteredTools(); $("#resultCount").textContent=`${tools.length}개 Tool`; $("#emptyState").hidden=tools.length>0;
   const grouped=new Map(STANDARD_CATEGORIES.map(c=>[c,[]]));
   tools.forEach(x=>{const k=normalizeCategoryName(x.category);grouped.get(k).push(x)});
