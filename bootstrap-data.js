@@ -1,7 +1,7 @@
 /* Auto-generated Material bootstrap snapshot.
    Immediate live data while Apps Script reconnects in the background. */
 window.MEKICS_BOOTSTRAP_SNAPSHOT = {
-  "generatedAt": "2026-09-29T06:47:49.413Z",
+  "generatedAt": "2026-09-29T07:02:57.633Z",
   "data": {
     "ok": true,
     "items": [
@@ -310,7 +310,7 @@ window.MEKICS_BOOTSTRAP_SNAPSHOT = {
         "product": "OmniOx",
         "no": "7",
         "category": "인허가/제출 자료",
-        "item": "인증서 (ISO13485·CE·FDA 등)",
+        "item": "인증서",
         "description": "제품 인증 및 허가 관련 서류",
         "status": "보유",
         "updatedAt": "",
