@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260929-market-v1" />
+  <link rel="stylesheet" href="style.css?v=20260929-category-v2" />
   <link rel="stylesheet" href="mekics-glass-theme.css?v=20260908" />
   <link rel="stylesheet" href="performance-tweaks.css?v=20260908" />
 </head>
@@ -35,16 +35,22 @@
     </aside>
 
     <main class="main">
+      <section class="global-market-bar" aria-label="자료 영역 선택">
+        <div class="global-market-copy">
+          <span>SALES MATERIAL</span>
+          <strong>자료 영역</strong>
+        </div>
+        <div class="market-switch market-switch-large" id="marketSwitch">
+          <button type="button" class="market-btn active" data-market="국내"><span>KR</span> 국내 자료</button>
+          <button type="button" class="market-btn" data-market="해외"><span>GLOBAL</span> 해외 자료</button>
+        </div>
+        <p>선택한 영역 기준으로 화면 전체 자료와 신규 등록 대상이 전환됩니다.</p>
+      </section>
+
       <header class="topbar">
         <div>
           <p class="eyebrow">STRATEGY & PLANNING · SALES ENABLEMENT</p>
-          <div class="title-market-row">
-            <h1 id="pageTitle">영업 Tool 보유 현황</h1>
-            <div class="market-switch" id="marketSwitch" aria-label="국내 해외 자료 전환">
-              <button type="button" class="market-btn active" data-market="국내">국내</button>
-              <button type="button" class="market-btn" data-market="해외">해외</button>
-            </div>
-          </div>
+          <h1 id="pageTitle">영업 Tool 보유 현황</h1>
           <p class="subtitle" id="pageSubtitle">제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.</p>
         </div>
         <div class="top-actions">
@@ -106,7 +112,13 @@
             <button class="btn ghost compact" type="button" id="bulkFromNewBtn">Excel로 등록</button>
           </div>
         </div>
-        <label>자료 분류<input id="categoryInput" list="categoryList" required placeholder="예: 제품 소개" /><datalist id="categoryList"></datalist></label>
+        <label>자료 분류<select id="categoryInput" required>
+          <option value="제품소개">제품소개</option>
+          <option value="사용/설치자료">사용/설치자료</option>
+          <option value="인허가/제출 자료">인허가/제출 자료</option>
+          <option value="영업지원자료">영업지원자료</option>
+          <option value="기타">기타</option>
+        </select></label>
         <label class="span2">영업 Tool 항목<input id="itemInput" required placeholder="예: 제품 브로슈어" /></label>
         <label class="span2">설명<input id="descriptionInput" placeholder="자료의 용도나 설명" /></label>
         <label class="span2">비고<textarea id="noteInput" rows="3" placeholder="추가 확인사항이나 업데이트 메모"></textarea></label>
@@ -252,7 +264,7 @@
       </div>
 
       <div class="structure-intro">
-        <div><b>코드 수정 없이 페이지에서 이름을 관리합니다.</b><span>제품군 · 제품 · Tool 분류명을 여기서 변경할 수 있고, 영업 Tool 이름은 각 카드의 ⋯ 수정 메뉴에서 변경합니다.</span></div>
+        <div><b>제품군과 제품 이름을 페이지에서 관리합니다.</b><span>Tool 분류는 전 제품에 동일한 5개 표준 분류를 사용하며, 영업 Tool 이름은 각 카드의 ⋯ 수정 메뉴에서 변경합니다.</span></div>
       </div>
 
       <section class="structure-section">
@@ -278,12 +290,12 @@
       </section>
 
       <section class="structure-section">
-        <div class="structure-section-head"><div><b>Tool 분류명</b><span>제품 소개 · 사용/설치 자료 같은 분류명을 전체 데이터에서 한 번에 변경합니다.</span></div></div>
+        <div class="structure-section-head"><div><b>표준 Tool 분류</b><span>모든 제품에 동일하게 적용됩니다.</span></div></div>
         <div id="categoryNameList" class="category-name-list"></div>
       </section>
 
       <div class="structure-tip">
-        <b>이름 변경 범위</b><span>제품군/제품은 화면 표시명만 변경되어 기존 Excel 연동 키와 데이터가 안전하게 유지됩니다. Tool명은 기존 Tool 수정에서 직접 변경할 수 있습니다.</span>
+        <b>관리 기준</b><span>제품군/제품은 화면 표시명만 변경됩니다. Tool 분류는 제품소개 · 사용/설치자료 · 인허가/제출 자료 · 영업지원자료 · 기타로 고정됩니다.</span>
       </div>
     </div>
   </dialog>
@@ -291,7 +303,7 @@
   <div class="toast" id="toast"></div>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20260929-market-v1"></script>
+  <script src="app.js?v=20260929-category-v2"></script>
   <script src="drive-bulk-links.js?v=20260929-market-v1"></script>
   <script src="performance-boost.js?v=20260908"></script>
 </body>
