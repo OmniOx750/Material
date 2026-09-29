@@ -73,7 +73,10 @@ const DEFAULT_NAV_CONFIG=[
   {id:"product-cannula",type:"product",parentId:"family-acc",name:"Cannula",dataKey:"Cannula",mode:"",order:1,active:true},
   {id:"product-circuit",type:"product",parentId:"family-acc",name:"Breathing Circuit",dataKey:"Circuit",mode:"",order:2,active:true}
 ];
-const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:"전체",detailLanguage:"전체",connected:false};
+const MARKET_STORAGE_KEY="mekicsMaterialMarketV1";
+let INITIAL_MARKET="국내";
+try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해외"].includes(savedMarket))INITIAL_MARKET=savedMarket}catch(e){}
+const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
 const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV5";
@@ -230,7 +233,10 @@ function languageBucket(value){
   if(["해외","영문","일문","중문","EN","JP","CN"].includes(v))return "해외";
   return "공용";
 }
-function filterFilesByLanguage(files,language){if(!language||language==="전체")return files;return files.filter(f=>languageBucket(f.language)===language)}
+function filterFilesByLanguage(files,language){
+  if(!language||language==="전체")return files;
+  return files.filter(f=>{const bucket=languageBucket(f.language);return bucket===language||bucket==="공용"});
+}
 function filesForToolId(toolId,language="전체"){const files=state.files.filter(f=>String(f.toolId)===String(toolId)).sort((a,b)=>String(b.uploadedAt||"").localeCompare(String(a.uploadedAt||"")));return filterFilesByLanguage(files,language)}
 function childProductMatch(name,dataKey){const t=String(name||"").toUpperCase().replace(/\s+/g,"");const k=String(dataKey||"").toUpperCase().replace(/\s+/g,"");return !!k&&(t===k||t.includes(k))}
 function normalizedModelName(name){return String(name||"").toUpperCase().replace(/\s+/g,"").replace(/[^A-Z0-9]/g,"")}
@@ -251,7 +257,6 @@ function childrenForView(parent,market){
         const bucket=market||state.fileLanguage||"전체";
         if(bucket==="국내")matched=matched.filter(c=>hft750MarketForChild(c)==="국내");
         else if(bucket==="해외")matched=matched.filter(c=>hft750MarketForChild(c)==="해외");
-        else if(bucket==="공용")matched=matched.filter(c=>hft750MarketForChild(c)==="해외");
       }
       return matched;
     }
@@ -293,8 +298,21 @@ function filteredTools(){
 function totals(items=scopedTopTools()){const total=items.length,owned=items.filter(x=>x.status==="보유").length,missing=items.filter(x=>x.status==="미보유").length,checking=items.filter(x=>x.status==="확인중").length;return {total,owned,missing,checking,rate:total?Math.round(owned/total*100):0}}
 function categoryIcon(category){if(category.includes("제품 소개"))return"▤";if(category.includes("사용"))return"◫";if(category.includes("인허가"))return"✓";if(category.includes("영업지원"))return"↗";if(category.includes("마케팅"))return"◇";return"□"}
 
-function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderFamilyProductNav();renderLanguageFilter();renderToolSections()}
-function renderLanguageFilter(){document.querySelectorAll("[data-file-language]").forEach(b=>b.classList.toggle("active",b.dataset.fileLanguage===state.fileLanguage))}
+function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderFamilyProductNav();renderMarketSwitch();renderToolSections()}
+function renderMarketSwitch(){
+  document.documentElement.dataset.market=state.fileLanguage;
+  document.querySelectorAll("[data-market]").forEach(b=>b.classList.toggle("active",b.dataset.market===state.fileLanguage));
+  const materialLabel=$("#materialMarketLabel");if(materialLabel)materialLabel.textContent=state.fileLanguage;
+  const bulkLabel=$("#driveBulkMarketLabel");if(bulkLabel)bulkLabel.textContent=state.fileLanguage;
+}
+function setMarket(market){
+  if(!["국내","해외"].includes(market)||market===state.fileLanguage)return;
+  state.fileLanguage=market;
+  state.detailLanguage=market;
+  try{localStorage.setItem(MARKET_STORAGE_KEY,market)}catch(e){}
+  render();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 function renderProductNav(){
   const seenFamilies=new Set();
   const families=navEntries("family").filter(group=>{
@@ -356,12 +374,12 @@ function renderHeader(){
   const label=scopeLabel();
   const name=state.product==="전체"?"영업 Tool 보유 현황":`${label} Sales Tool`;
   $("#pageTitle").textContent=name;
-  $("#pageSubtitle").textContent=state.product==="전체"?"제품군과 제품별 영업 자료를 Tool 단위로 확인하고 관리합니다.":"※ 등록된 자료 파일은 페이지에서 직접 수정할 수 없습니다. 수정본은 새 파일로 등록해주세요.";
+  $("#pageSubtitle").textContent=state.product==="전체"?`${state.fileLanguage} 영업 자료를 제품군과 Tool 단위로 확인하고 관리합니다.`:`${state.fileLanguage} 자료 · 등록된 파일은 새 링크로 교체해 관리합니다.`;
 }
 function renderStats(){
   const toolCount=scopedTopTools().length;
-  const materialCount=state.files.length;
-  const cards=[["전체 Tool",toolCount,"현재 관리 중인 Tool","▦"],["등록 자료",materialCount,"Google Drive 연결 자료","↗"]];
+  const materialCount=filterFilesByLanguage(state.files,state.fileLanguage).length;
+  const cards=[["전체 Tool",toolCount,"현재 관리 중인 Tool","▦"],["등록 자료",materialCount,`${state.fileLanguage} Google Drive 자료`,"↗"]];
   $("#stats").innerHTML=cards.map(c=>`<div class="stat"><div class="stat-top"><span class="stat-label">${c[0]}</span><span class="stat-icon">${c[3]}</span></div><div class="stat-value">${c[1]}</div><div class="stat-sub">${c[2]}</div></div>`).join("");
 }
 function renderOverview(){
@@ -385,12 +403,11 @@ function renderToolSections(){
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();openEdit(b.dataset.edit)});
 }
 function toolCard(x){
-  const fileCount=fileCountForParent(x),lang=fileLanguageCounts(x);
+  const fileCount=fileCountForParent(x);
   return `<article class="tool-card" data-detail="${esc(x.id)}">
-    <div class="tool-card-top"><span class="tool-symbol">${categoryIcon(x.category||"")}</span></div>
+    <div class="tool-card-top"><span class="tool-symbol">${categoryIcon(x.category||"")}</span><span class="market-card-label">${esc(state.fileLanguage)}</span></div>
     <h3>${esc(x.item)}</h3><p class="tool-desc">${esc(x.description||"설명 없음")}</p>
-    <div class="language-counts"><span class="language-pill ko ${state.fileLanguage==="국내"?"active":""}">국내 ${lang.domestic}</span><span class="language-pill en ${state.fileLanguage==="해외"?"active":""}">해외 ${lang.overseas}</span><span class="language-pill other ${state.fileLanguage==="공용"?"active":""}">공용 ${lang.shared}</span></div>
-    <div class="tool-card-footer"><span class="tool-meta">${fileCount?`📎 ${fileCount}개 자료`:"등록 자료 없음"}</span><div class="card-actions"><button class="text-btn" data-detail="${esc(x.id)}">자료 보기</button><button class="row-btn" data-edit="${esc(x.id)}" title="수정">⋯</button></div></div>
+    <div class="tool-card-footer"><span class="tool-meta">${fileCount?`📎 ${fileCount}개 자료`:`${esc(state.fileLanguage)} 등록 자료 없음`}</span><div class="card-actions"><button class="text-btn" data-detail="${esc(x.id)}">자료 보기</button><button class="row-btn" data-edit="${esc(x.id)}" title="수정">⋯</button></div></div>
   </article>`;
 }
 function rebuildFilters(){
@@ -403,29 +420,25 @@ function rebuildFilters(){
 function openDetail(id){
   const wasOpen=$("#detailDialog").open;
   const x=state.items.find(i=>String(i.id)===String(id));if(!x)return;const parent=parentOf(x)||x;
-  if(!wasOpen)state.detailLanguage=state.fileLanguage||"전체";
-  const allFiles=filesForParent(parent,true,"전체");
-  const files=filesForParent(parent,true,state.detailLanguage);
-  const langCounts={전체:allFiles.length,국내:filesForParent(parent,true,"국내").length,해외:filesForParent(parent,true,"해외").length,공용:filesForParent(parent,true,"공용").length};
-  $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"}`;
+  state.detailLanguage=state.fileLanguage;
+  const files=filesForParent(parent,true,state.fileLanguage);
+  $("#detailEyebrow").textContent=`${scopeLabel()==="전체"?parent.product:scopeLabel()} · ${parent.category||"SALES TOOL"} · ${state.fileLanguage}`;
   $("#detailTitle").textContent=parent.item;
   $("#detailBody").innerHTML=`
     <div class="detail-summary"><div><p>${esc(parent.description||"설명 없음")}</p>${parent.note?`<div class="detail-note">${esc(parent.note)}</div>`:""}</div></div>
     <div class="material-section">
-      <div class="material-section-head"><div><b>등록 자료</b><span>국내 · 해외 · 공용으로 구분합니다. 전체 ${allFiles.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ 자료 등록</button></div>
-      <div class="material-language-tabs">${["전체","국내","해외","공용"].map(lang=>`<button type="button" class="material-language-tab ${state.detailLanguage===lang?"active":""}" data-detail-language="${lang}"><span>${lang}</span><b>${langCounts[lang]}</b></button>`).join("")}</div>
-      <div class="material-list">${files.length?files.map(fileRowHtml).join(""):`<div class="material-empty"><span>⌁</span><b>${esc(state.detailLanguage)} 자료가 없습니다.</b><small>Drive 링크를 등록하면 여기에 표시됩니다.</small></div>`}</div>
+      <div class="material-section-head"><div><b>${esc(state.fileLanguage)} 등록 자료</b><span>Google Drive 연결 자료 ${files.length}개</span></div><button class="btn primary compact" id="addMaterialFromDetail">＋ ${esc(state.fileLanguage)} 자료 등록</button></div>
+      <div class="material-list">${files.length?files.map(fileRowHtml).join(""):`<div class="material-empty"><span>⌁</span><b>${esc(state.fileLanguage)} 자료가 없습니다.</b><small>현재 영역에 Drive 링크를 등록해주세요.</small></div>`}</div>
     </div>
     <div class="detail-edit"><button class="btn ghost" id="editFromDetail">이 Tool 수정</button></div>`;
   $("#editFromDetail").onclick=()=>{$("#detailDialog").close();openEdit(parent.id)};
   $("#addMaterialFromDetail").onclick=()=>openMaterialDialog(parent.id);
-  document.querySelectorAll("[data-detail-language]").forEach(b=>b.onclick=()=>{state.detailLanguage=b.dataset.detailLanguage;openDetail(parent.id)});
   document.querySelectorAll("[data-file-delete]").forEach(b=>b.onclick=()=>deleteMaterial(b.dataset.fileDelete,parent.id));
   if(!wasOpen)$("#detailDialog").showModal();
 }
 function fileRowHtml(f){
   const current=f.isCurrent?'<span class="current-badge">현재본</span>':'';
-  const meta=[f.version,languageBucket(f.language),bytesLabel(f.size)].filter(v=>v&&v!=="-").map(esc).join(" · ");
+  const meta=[f.version,bytesLabel(f.size)].filter(v=>v&&v!=="-").map(esc).join(" · ");
   const label=targetName(f.toolId);
   const href=f.downloadUrl||f.viewUrl||"#";
   return `<div class="material-row"><div class="file-icon">${fileExtensionIcon(f.fileName)}</div><div class="file-main"><div class="file-title"><strong>${esc(f.fileName)}</strong>${current}</div><span>${esc(label)}${meta?` · ${meta}`:""}</span>${f.note?`<small>${esc(f.note)}</small>`:""}</div><div class="file-actions"><a class="btn ghost compact file-open" href="${esc(href)}" target="_blank" rel="noopener">다운로드</a><button class="row-btn" data-file-delete="${esc(f.id)}" title="자료 삭제">×</button></div></div>`;
@@ -433,7 +446,7 @@ function fileRowHtml(f){
 function fileExtensionIcon(name){const ext=String(name||"").split(".").pop().toUpperCase();return ["PDF","PPT","PPTX","XLS","XLSX","DOC","DOCX","MP4","MOV","ZIP"].includes(ext)?ext.slice(0,4):"FILE"}
 
 function refreshMaterialTargets(parent){
-  const entry=currentScopeEntry(),fam=familyOf(entry),language=$("#materialLanguage").value||"전체";
+  const entry=currentScopeEntry(),fam=familyOf(entry),language=state.fileLanguage;
   let target=parent;
   if(entry?.type==="product"&&fam?.mode==="child"&&parent.product===fam.dataKey){
     const candidates=childrenForView(parent,language);
@@ -446,22 +459,22 @@ function openMaterialDialog(parentId){
   if($("#detailDialog").open)$("#detailDialog").close();
   const parent=state.items.find(x=>String(x.id)===String(parentId));if(!parent)return;
   materialState.parentId=String(parent.id);materialState.mode="link";
-  $("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialLanguage").value=["국내","해외","공용"].includes(state.fileLanguage)?state.fileLanguage:"국내";$("#materialNote").value="";$("#materialCurrent").checked=true;
+  $("#materialDriveUrl").value="";$("#materialVersion").value="";$("#materialNote").value="";$("#materialCurrent").checked=true;
+  const marketLabel=$("#materialMarketLabel");if(marketLabel)marketLabel.textContent=state.fileLanguage;
   refreshMaterialTargets(parent);
-  $("#materialLanguage").onchange=()=>refreshMaterialTargets(parent);
   $("#materialDialog").showModal();
 }
 async function saveMaterial(){
   if(!state.connected)return toast("Google Sheets 연결 후 자료를 등록할 수 있습니다.");
   const toolId=$("#materialTarget").value;
   const version=$("#materialVersion").value.trim();
-  const language=$("#materialLanguage").value;
+  const language=state.fileLanguage;
   const note=$("#materialNote").value.trim();
   const isCurrent=$("#materialCurrent").checked;
   const driveUrl=$("#materialDriveUrl").value.trim();
   if(!toolId)return toast("연결할 Tool을 확인해주세요.");
   if(!driveUrl)return toast("Google Drive 링크를 입력해주세요.");
-  if(!language)return toast("국내 / 해외 / 공용 중 활용 구분을 선택해주세요.");
+  if(!["국내","해외"].includes(language))return toast("상단에서 국내 또는 해외를 선택해주세요.");
 
   const btn=$("#saveMaterialBtn"),original=btn.textContent;
   try{
@@ -660,5 +673,5 @@ $("#closeBulkDialog").onclick=()=>$("#bulkDialog").close();$("#cancelBulkBtn").o
 $("#closeStructureDialog").onclick=()=>$("#structureDialog").close();$("#addStructureProductBtn").onclick=addStructureProduct;$("#addStructureFamilyBtn").onclick=addStructureFamily;
 $("#closeMaterialDialog").onclick=()=>$("#materialDialog").close();$("#cancelMaterialBtn").onclick=()=>$("#materialDialog").close();$("#saveMaterialBtn").onclick=saveMaterial;
 $("#searchInput").oninput=e=>{state.search=e.target.value;renderToolSections()};$("#categoryFilter").onchange=e=>{state.category=e.target.value;renderToolSections()};
-document.querySelectorAll("[data-file-language]").forEach(b=>b.onclick=()=>{state.fileLanguage=b.dataset.fileLanguage;renderLanguageFilter();renderToolSections()});
+document.querySelectorAll("[data-market]").forEach(b=>b.onclick=()=>setMarket(b.dataset.market));
 loadData();
