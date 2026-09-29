@@ -82,7 +82,7 @@ FALLBACK_PRODUCTS.forEach((product,pIndex)=>{
 
 const RAW_API_URL=(window.APP_CONFIG?.API_URL||"").trim();
 const normalizeAppsScriptUrl=url=>url.replace(/\/a\/macros\/[^/]+\/s\//,"/macros/s/");
-const API_CANDIDATES=[normalizeAppsScriptUrl(RAW_API_URL),RAW_API_URL].filter((v,i,a)=>v&&a.indexOf(v)===i);
+const API_CANDIDATES=[RAW_API_URL,normalizeAppsScriptUrl(RAW_API_URL)].filter((v,i,a)=>v&&a.indexOf(v)===i);
 let ACTIVE_API_URL=API_CANDIDATES[0]||"";
 const STANDARD_CATEGORIES=["제품소개","사용/설치자료","인허가/제출 자료","영업지원자료","기타"];
 function normalizeCategoryName(value){
@@ -133,7 +133,7 @@ try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV5";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV6";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -146,7 +146,7 @@ function jsonp(url,params={}){
   return new Promise((resolve,reject)=>{
     const cb=`__mekics_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script=document.createElement("script");
-    const timer=setTimeout(()=>finish(new Error("TIMEOUT")),20000);
+    const timer=setTimeout(()=>finish(new Error("TIMEOUT")),12000);
     function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
     function finish(err,data){cleanup();err?reject(err):resolve(data)}
     window[cb]=data=>finish(null,data);
@@ -159,21 +159,24 @@ function jsonp(url,params={}){
 
 async function apiList(){
   if(!API_CANDIDATES.length) throw new Error("API_NOT_CONFIGURED");
-  const requests=API_CANDIDATES.map(async url=>{
-    let result=await jsonp(url,{action:"bootstrap"});
-    if(!result||result.ok===false) result=await jsonp(url,{action:"list"});
-    if(!result||result.ok===false) throw new Error(result?.message||"API_ERROR");
-    return {url,result};
-  });
-  try{
-    const winner=await Promise.any(requests);
-    ACTIVE_API_URL=winner.url;
-    return winner.result;
-  }catch(err){
-    throw new Error("CONNECTION_FAILED");
+  let lastError=null;
+  for(let round=0;round<3;round++){
+    if(round>0)await sleep(round===1?900:1800);
+    const attempts=API_CANDIDATES.map(async url=>{
+      try{
+        const result=await jsonp(url,{action:"bootstrap"});
+        if(!result||result.ok===false)throw new Error(result?.message||"API_ERROR");
+        return {url,result};
+      }catch(err){lastError=err;throw err}
+    });
+    try{
+      const winner=await Promise.any(attempts);
+      ACTIVE_API_URL=winner.url;
+      return winner.result;
+    }catch(err){lastError=err}
   }
+  throw lastError||new Error("CONNECTION_FAILED");
 }
-
 async function apiPost(action,payload={}){
   if(!ACTIVE_API_URL) throw new Error("API_NOT_CONFIGURED");
   await fetch(ACTIVE_API_URL,{
@@ -208,10 +211,14 @@ function applyBootstrapResult(result){
 function readBootstrapCache(){
   try{
     const raw=localStorage.getItem(BOOTSTRAP_CACHE_KEY)||sessionStorage.getItem(BOOTSTRAP_CACHE_KEY);
-    if(!raw)return null;
-    const parsed=JSON.parse(raw);
-    return parsed&&parsed.data?parsed:null;
-  }catch(e){return null}
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(parsed&&parsed.data)return parsed;
+    }
+  }catch(e){}
+  const bundled=window.MEKICS_BOOTSTRAP_SNAPSHOT;
+  if(bundled?.data)return {savedAt:Date.parse(bundled.generatedAt)||Date.now(),data:bundled.data,source:"bundled"};
+  return null;
 }
 
 function writeBootstrapCache(result){
@@ -220,51 +227,78 @@ function writeBootstrapCache(result){
   try{sessionStorage.setItem(BOOTSTRAP_CACHE_KEY,value)}catch(e){}
 }
 
-async function loadData(showMessage=false){
-  const cached=!showMessage?readBootstrapCache():null;
+let reconnectTimer=null;
+let reconnectDelay=5000;
+let remoteSyncInFlight=null;
 
-  // First paint should never wait for Apps Script / Drive.
+function scheduleReconnect(){
+  if(reconnectTimer||!API_CANDIDATES.length)return;
+  const delay=reconnectDelay;
+  reconnectTimer=setTimeout(()=>{reconnectTimer=null;loadData(false)},delay);
+  reconnectDelay=Math.min(Math.round(reconnectDelay*1.7),60000);
+}
+function resetReconnect(){
+  reconnectDelay=5000;
+  if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
+}
+
+async function loadData(showMessage=false){
+  const cached=readBootstrapCache();
+
   if(cached?.data){
     applyBootstrapResult(cached.data);
-    setSync("on","최근 데이터 표시 중","최신 연결을 백그라운드에서 확인하고 있습니다.");
-    rebuildFilters(); render();
-  }else if(!showMessage){
+    state.connected=false;
+    setSync("","자료 준비됨","Google Sheets 최신 상태를 자동 동기화 중");
+    rebuildFilters();render();
+  }else{
     state.items=structuredClone(SEED_DATA);
     state.files=[];
     state.navConfig=structuredClone(DEFAULT_NAV_CONFIG);
     state.connected=false;
-    setSync("","연결 확인 중","화면은 먼저 열고 Google Sheets · Drive를 확인합니다.");
-    rebuildFilters(); render();
+    setSync("","자료 준비 중","Google Sheets 자동 연결 중");
+    rebuildFilters();render();
   }
 
-  try{
-    if(API_CANDIDATES.length){
+  if(!API_CANDIDATES.length){
+    if(showMessage)toast("연결 설정을 확인해주세요.");
+    return;
+  }
+  if(remoteSyncInFlight){
+    if(showMessage)toast("최신 자료를 동기화하고 있습니다.");
+    return remoteSyncInFlight;
+  }
+
+  remoteSyncInFlight=(async()=>{
+    try{
       const result=await apiList();
       applyBootstrapResult(result);
       writeBootstrapCache(result);
+      resetReconnect();
       setSync("on","Google Sheets · Drive 연결됨",`${state.items.length}개 Tool · ${state.files.length}개 자료`);
-    }else{
-      state.items=structuredClone(SEED_DATA); state.files=[]; state.navConfig=structuredClone(DEFAULT_NAV_CONFIG); state.connected=false;
-      setSync("","초기 데이터 모드","config.js에 배포 URL 입력");
+      rebuildFilters();render();
+      if(showMessage)toast("최신 자료로 동기화했습니다.");
+    }catch(e){
+      console.warn("Background Sheets sync:",e);
+      state.connected=false;
+      setSync("","자료 사용 가능","Google Sheets 자동 재연결 중");
+      scheduleReconnect();
+      if(showMessage)toast("자료는 그대로 표시되고 연결은 자동으로 다시 시도합니다.");
+    }finally{
+      remoteSyncInFlight=null;
     }
-  }catch(e){
-    console.error("Sheets connection:",e);
-    if(cached?.data){
-      applyBootstrapResult(cached.data);
-      setSync("error","최근 데이터 표시 중","최신 연결이 지연되고 있습니다. 새로고침으로 다시 확인할 수 있습니다.");
-    }else{
-      state.items=structuredClone(SEED_DATA); state.files=[]; state.navConfig=structuredClone(DEFAULT_NAV_CONFIG); state.connected=false;
-      setSync("error","연결 필요 · 샘플 데이터","Google Apps Script 응답이 지연되거나 연결되지 않았습니다.");
-    }
-    if(showMessage) toast("Google Sheets 연결을 다시 확인해주세요.");
-  }
-  rebuildFilters(); render();
-  if(showMessage&&state.connected) toast("Google Sheets 최신 데이터로 동기화했습니다.");
+  })();
+  return remoteSyncInFlight;
 }
 
+window.addEventListener("online",()=>{resetReconnect();loadData(false)});
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&!state.connected){resetReconnect();loadData(false)}
+});
 function setSync(mode,title,sub){
-  $("#syncDot").classList.remove("on","error"); if(mode) $("#syncDot").classList.add(mode);
-  $("#syncText").textContent=title; $("#syncSub").textContent=sub;
+  $("#syncDot").classList.remove("on","error");
+  if(mode==="on")$("#syncDot").classList.add("on");
+  $("#syncText").textContent=title;
+  $("#syncSub").textContent=sub;
 }
 function navEntries(type){return state.navConfig.filter(x=>x.active!==false&&x.type===type).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)||String(a.name).localeCompare(String(b.name),"ko"))}
 function navById(id){return state.navConfig.find(x=>String(x.id)===String(id))||null}
