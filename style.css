@@ -506,3 +506,8 @@ dialog{width:min(650px,calc(100vw - 30px));border:0;border-radius:16px;padding:0
   .global-market-bar .market-switch-large{width:auto;min-width:0}
   .global-market-bar .market-btn{min-width:112px}
 }
+
+
+/* v13 · family-first navigation, no aggregate All Tools view */
+.side-nav{padding-top:2px}
+.nav-section-title{padding-top:6px}
