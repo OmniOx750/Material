@@ -61,6 +61,30 @@ const FALLBACK_TOOL_TEMPLATE=[
   ["12","기타","제품 데모 영상","사용 시연 영상"],
   ["13","기타","전시회·학회용 홍보물","부스 전시용 배너, 리플렛 등"]
 ];
+const FALLBACK_OMNIOX_MODELS=["HFT700","HFT751"];
+FALLBACK_OMNIOX_MODELS.forEach(model=>{
+  const parents=SEED_DATA.filter(x=>x.product==="OmniOx"&&!String(x.no||"").includes("-"));
+  parents.forEach(parent=>{
+    const base=String(parent.no||"").replace(/\.$/,"");
+    const exists=SEED_DATA.some(x=>x.product==="OmniOx"&&String(x.no||"").startsWith(base+"-")&&String(x.item||"").toUpperCase()===model);
+    if(exists)return;
+    const siblings=SEED_DATA.filter(x=>x.product==="OmniOx"&&String(x.no||"").startsWith(base+"-"));
+    const next=siblings.reduce((m,x)=>Math.max(m,Number(String(x.no).split("-")[1].replace(".",""))||0),0)+1;
+    SEED_DATA.push({
+      id:`seed-omniox-${model.toLowerCase()}-${base}`,
+      product:"OmniOx",
+      no:`${base}-${next}.`,
+      category:"",
+      item:model,
+      description:"",
+      status:"미보유",
+      updatedAt:"",
+      note:"",
+      order:SEED_DATA.length+1
+    });
+  });
+});
+
 const FALLBACK_PRODUCTS=["MTV1000","MV2000","MP10/12","MP800","MNC100","MH100","Cannula","Circuit"];
 FALLBACK_PRODUCTS.forEach((product,pIndex)=>{
   FALLBACK_TOOL_TEMPLATE.forEach((t,tIndex)=>{
@@ -133,7 +157,7 @@ try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"family-omniox",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV7";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV8";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
@@ -437,17 +461,24 @@ function renderFamilyProductNav(){
   const selectedId=entry?.type==="product"?entry.id:family.id;
   wrap.innerHTML=`
     <div class="family-products-head">
-      <div>
-        <p class="eyebrow">PRODUCT LINEUP</p>
-        <h2>${esc(family.name)}</h2>
-        <p>제품을 선택하면 해당 제품의 Sales Tool만 확인할 수 있습니다.</p>
+      <div class="family-products-title">
+        <span class="family-products-badge">PRODUCT LINEUP</span>
+        <div>
+          <h2>${esc(family.name)}</h2>
+          <p>제품을 선택하면 해당 제품의 Sales Tool을 바로 확인할 수 있습니다.</p>
+        </div>
       </div>
       <span class="family-products-count">${products.length} Products</span>
     </div>
     <div class="family-product-tabs">
-      ${products.map(product=>`
+      ${products.map((product,index)=>`
         <button type="button" class="family-product-tab ${selectedId===product.id?'active':''}" data-family-product="${esc(product.id)}">
-          <span>${esc(product.name)}</span><small>Sales Tool</small>
+          <span class="family-product-index">${String(index+1).padStart(2,"0")}</span>
+          <span class="family-product-copy">
+            <strong>${esc(product.name)}</strong>
+            <small>Sales Tool Library</small>
+          </span>
+          <span class="family-product-arrow">→</span>
         </button>`).join("")}
     </div>`;
   wrap.querySelectorAll("[data-family-product]").forEach(button=>{
