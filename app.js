@@ -130,7 +130,7 @@ const DEFAULT_NAV_CONFIG=[
 const MARKET_STORAGE_KEY="mekicsMaterialMarketV1";
 let INITIAL_MARKET="국내";
 try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해외"].includes(savedMarket))INITIAL_MARKET=savedMarket}catch(e){}
-const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
+const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"family-omniox",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
 const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV7";
@@ -387,7 +387,7 @@ function filteredTools(){
 function totals(items=scopedTopTools()){const total=items.length,owned=items.filter(x=>x.status==="보유").length,missing=items.filter(x=>x.status==="미보유").length,checking=items.filter(x=>x.status==="확인중").length;return {total,owned,missing,checking,rate:total?Math.round(owned/total*100):0}}
 function categoryIcon(category){if(category.includes("제품소개"))return"▤";if(category.includes("사용"))return"◫";if(category.includes("인허가"))return"✓";if(category.includes("영업지원"))return"↗";if(category.includes("마케팅"))return"◇";return"□"}
 
-function render(){renderProductNav();renderHeader();renderStats();renderOverview();renderFamilyProductNav();renderMarketSwitch();renderToolSections()}
+function render(){renderProductNav();renderHeader();renderOverview();renderFamilyProductNav();renderMarketSwitch();renderToolSections()}
 function renderMarketSwitch(){
   document.documentElement.dataset.market=state.fileLanguage;
   document.querySelectorAll("[data-market]").forEach(b=>b.classList.toggle("active",b.dataset.market===state.fileLanguage));
@@ -403,6 +403,7 @@ function setMarket(market){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function renderProductNav(){
+  if(state.product==="전체")state.product=navEntries("family")[0]?.id||"family-omniox";
   const seenFamilies=new Set();
   const families=navEntries("family").filter(group=>{
     const key=String(group.name||"").trim().toLowerCase().replace(/\s+/g," ");
@@ -418,8 +419,6 @@ function renderProductNav(){
       <b>${esc(group.name)}</b>
     </button>`;
   }).join("");
-  const allButton=document.querySelector('[data-product-nav="전체"]');
-  if(allButton)allButton.classList.toggle("active",state.product==="전체");
   document.querySelectorAll("[data-product-nav]").forEach(b=>b.onclick=()=>selectProduct(b.dataset.productNav));
 }
 
@@ -466,10 +465,10 @@ function renderHeader(){
   $("#pageSubtitle").textContent=state.product==="전체"?`${state.fileLanguage} 영업 자료를 제품군과 Tool 단위로 확인하고 관리합니다.`:`${state.fileLanguage} 자료 · 등록된 파일은 새 링크로 교체해 관리합니다.`;
 }
 function renderStats(){
-  const toolCount=scopedTopTools().length;
+  const stats=$("#stats");
+  if(!stats)return;
   const materialCount=filterFilesByLanguage(state.files,state.fileLanguage).length;
-  const cards=[["전체 Tool",toolCount,"현재 관리 중인 Tool","▦"],["등록 자료",materialCount,`${state.fileLanguage} Google Drive 자료`,"↗"]];
-  $("#stats").innerHTML=cards.map(c=>`<div class="stat"><div class="stat-top"><span class="stat-label">${c[0]}</span><span class="stat-icon">${c[3]}</span></div><div class="stat-value">${c[1]}</div><div class="stat-sub">${c[2]}</div></div>`).join("");
+  stats.innerHTML=`<div class="stat"><div class="stat-top"><span class="stat-label">등록 자료</span><span class="stat-icon">↗</span></div><div class="stat-value">${materialCount}</div><div class="stat-sub">${state.fileLanguage} Google Drive 자료</div></div>`;
 }
 function renderOverview(){
   const label=state.product==="전체"?"전체 제품":scopeLabel();
