@@ -133,7 +133,7 @@ try{const savedMarket=localStorage.getItem(MARKET_STORAGE_KEY);if(["국내","해
 const state={items:[],files:[],navConfig:structuredClone(DEFAULT_NAV_CONFIG),product:"전체",search:"",status:"",category:"",fileLanguage:INITIAL_MARKET,detailLanguage:INITIAL_MARKET,connected:false};
 const materialState={parentId:"",mode:"upload"};
 const bulkState={fileName:"",sheets:[]};
-const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV6";
+const BOOTSTRAP_CACHE_KEY="mekicsMaterialBootstrapV7";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const statusClass=s=>s==="보유"?"owned":s==="미보유"?"missing":"checking";
